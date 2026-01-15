@@ -26,7 +26,7 @@ import { Evaluator, createProvider } from '@artemiskit/core';
 
 const provider = createProvider('openai', {
   apiKey: process.env.OPENAI_API_KEY,
-  model: 'gpt-4o',
+  model: 'gpt-5.1',
 });
 
 const evaluator = new Evaluator({ provider });
@@ -51,7 +51,7 @@ import { createMatcher } from '@artemiskit/jest';
 
 const evaluateLLM = createMatcher({
   provider: 'openai',
-  model: 'gpt-4o',
+  model: 'gpt-5.1',
 });
 
 describe('Chatbot', () => {

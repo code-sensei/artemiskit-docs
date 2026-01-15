@@ -24,7 +24,7 @@ export OPENAI_API_KEY="sk-..."
 ```yaml
 name: my-test
 provider: openai
-model: gpt-4o
+model: gpt-5.1
 
 cases:
   - id: example
@@ -39,11 +39,10 @@ cases:
 
 | Model | Description |
 |-------|-------------|
-| `gpt-4o` | Latest GPT-4o multimodal |
-| `gpt-4o-mini` | Smaller, faster GPT-4o |
-| `gpt-4-turbo` | GPT-4 Turbo with 128k context |
-| `gpt-4` | Original GPT-4 |
-| `gpt-3.5-turbo` | Fast and cost-effective |
+| `gpt-5.1` | Latest flagship model |
+| `gpt-5.1-mini` | Smaller, faster variant |
+| `gpt-4o` | Previous generation multimodal |
+| `gpt-4o-mini` | Fast and cost-effective |
 
 ## Config File
 
@@ -51,7 +50,7 @@ Configure OpenAI in your `artemis.config.yaml`:
 
 ```yaml
 provider: openai
-model: gpt-4o
+model: gpt-5.1
 
 providers:
   openai:
@@ -68,7 +67,7 @@ Override settings in your scenario file:
 ```yaml
 name: my-test
 provider: openai
-model: gpt-4o
+model: gpt-5.1
 temperature: 0
 seed: 42
 maxTokens: 1000

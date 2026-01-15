@@ -13,7 +13,7 @@ ArtemisKit scenarios are defined in YAML files. This page covers the complete sc
 name: my-evaluation
 description: Description of this evaluation
 provider: openai
-model: gpt-4o
+model: gpt-5.1
 
 cases:
   - id: test-case-id
@@ -34,6 +34,7 @@ cases:
 | `version` | string | No | Scenario version (default: "1.0") |
 | `provider` | string | No | LLM provider (openai, azure-openai, vercel-ai, anthropic, etc.) |
 | `model` | string | No | Model name |
+| `providerConfig` | object | No | Provider-specific configuration overrides |
 | `temperature` | number | No | Sampling temperature (0-2) |
 | `seed` | number | No | Random seed for reproducibility |
 | `maxTokens` | number | No | Maximum tokens in response |
@@ -59,11 +60,34 @@ cases:
       mode: any
     tags: [basic, regression]  # Optional: tags for filtering
     timeout: 30000             # Optional: timeout in milliseconds
-    retries: 0                 # Optional: number of retries
+    retries: 0                 # Optional: number of retries (default: 0)
     provider: openai           # Optional: override scenario provider
-    model: gpt-4o              # Optional: override scenario model
+    model: gpt-5.1             # Optional: override scenario model
     variables:                 # Optional: case-level variables
       name: "Alice"
+```
+
+## Provider Config
+
+Override provider settings at the scenario level:
+
+```yaml
+name: with-provider-config
+provider: azure-openai
+model: gpt-5.1
+
+providerConfig:
+  resourceName: my-azure-resource
+  deploymentName: my-deployment
+  apiVersion: 2024-02-15-preview
+
+cases:
+  - id: example
+    prompt: "Hello"
+    expected:
+      type: contains
+      values: ["hello"]
+      mode: any
 ```
 
 ## Setup Object
@@ -155,7 +179,7 @@ The system prompt from `setup.systemPrompt` is automatically prepended to multi-
 name: customer-support-bot
 description: Evaluation suite for customer support chatbot
 provider: openai
-model: gpt-4o
+model: gpt-5.1
 seed: 42
 
 variables:
@@ -208,14 +232,14 @@ cases:
       mode: any
 ```
 
-## Provider Configuration
+## Provider Override
 
 You can override provider settings at the scenario or case level:
 
 ```yaml
 name: provider-override-example
 provider: openai
-model: gpt-4o
+model: gpt-5.1
 
 cases:
   - id: test-with-different-model

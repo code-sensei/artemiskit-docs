@@ -24,7 +24,7 @@ export OPENROUTER_API_KEY="sk-or-..."
 ```yaml
 name: my-test
 provider: openrouter
-model: openai/gpt-4o
+model: openai/gpt-5.1
 
 cases:
   - id: example
@@ -40,7 +40,7 @@ cases:
 OpenRouter uses the format `provider/model`:
 
 ```
-openai/gpt-4o
+openai/gpt-5.1
 anthropic/claude-3-5-sonnet
 google/gemini-pro
 meta-llama/llama-3-70b-instruct
@@ -50,7 +50,7 @@ meta-llama/llama-3-70b-instruct
 
 | Model | Description |
 |-------|-------------|
-| `openai/gpt-4o` | OpenAI GPT-4o |
+| `openai/gpt-5.1` | OpenAI GPT-5.1 |
 | `anthropic/claude-3-5-sonnet` | Anthropic Claude 3.5 Sonnet |
 | `google/gemini-pro` | Google Gemini Pro |
 | `meta-llama/llama-3-70b-instruct` | Meta Llama 3 70B |
@@ -64,7 +64,7 @@ Configure OpenRouter in your `artemis.config.yaml`:
 
 ```yaml
 provider: openrouter
-model: openai/gpt-4o
+model: openai/gpt-5.1
 
 providers:
   openrouter:

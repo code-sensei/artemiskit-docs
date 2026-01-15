@@ -29,14 +29,14 @@ expected:
   values:
     - "hello"
     - "welcome"
-  mode: any  # 'any' = at least one match, 'all' = all must match
+  mode: any  # 'any' = at least one match, 'all' = all must match (default)
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `type` | string | Yes | Must be `contains` |
 | `values` | array | Yes | Array of strings to look for |
-| `mode` | string | Yes | `all` (default) or `any` |
+| `mode` | string | No | `all` (default) or `any` |
 
 ### Examples
 
@@ -48,7 +48,7 @@ expected:
   mode: any
 ```
 
-Match all values:
+Match all values (default behavior):
 ```yaml
 expected:
   type: contains
@@ -124,7 +124,7 @@ Allow approximate matching using string similarity. Uses Levenshtein distance.
 expected:
   type: fuzzy
   value: "approximately this text"
-  threshold: 0.8  # 80% similarity required
+  threshold: 0.8  # 80% similarity required (default)
 ```
 
 | Field | Type | Required | Description |
@@ -154,9 +154,9 @@ expected:
     - Accuracy of information
     - Helpfulness and clarity
     - Professional tone
-  threshold: 0.7  # Minimum score (0-1)
+  threshold: 0.7  # Minimum score 0-1 (default)
   provider: openai  # Optional: override provider
-  model: gpt-4o     # Optional: override model
+  model: gpt-5.1    # Optional: override model
 ```
 
 | Field | Type | Required | Description |
