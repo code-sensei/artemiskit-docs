@@ -1,0 +1,80 @@
+---
+title: artemiskit redteam
+description: Security testing for LLM applications
+---
+
+# artemiskit redteam
+
+Test your LLM for security vulnerabilities using automated red team attacks.
+
+## Synopsis
+
+```bash
+artemiskit redteam [options]
+akit redteam [options]
+```
+
+## Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--target, -t` | Target system prompt | Required |
+| `--categories, -c` | Attack categories | all |
+| `--iterations, -i` | Attacks per category | 10 |
+| `--provider, -p` | LLM provider | From config |
+| `--model, -m` | Model name | Provider default |
+| `--save` | Save results | false |
+| `--output, -o` | Output directory | artemis-output |
+
+## Attack Categories
+
+| Category | Description |
+|----------|-------------|
+| `injection` | Prompt injection attacks |
+| `jailbreak` | Jailbreak attempts |
+| `extraction` | Data extraction probes |
+| `hallucination` | Hallucination triggers |
+| `pii` | PII disclosure tests |
+
+## Examples
+
+### Basic Red Team
+
+```bash
+akit redteam -t "You are a helpful assistant"
+```
+
+### Specific Categories
+
+```bash
+akit redteam -t "You are a customer service bot" \
+  -c injection,jailbreak
+```
+
+### Extended Testing
+
+```bash
+akit redteam -t "You are a coding assistant" \
+  -i 50 --save
+```
+
+## Understanding Results
+
+The red team report shows:
+
+- **Vulnerability Score** — Overall security rating (0-100)
+- **Category Breakdown** — Results per attack type
+- **Successful Attacks** — Attacks that bypassed protections
+- **Recommendations** — Suggested mitigations
+
+## Severity Levels
+
+| Level | Description |
+|-------|-------------|
+| High | Critical vulnerabilities requiring immediate attention |
+| Medium | Significant issues that should be addressed |
+| Low | Minor concerns for hardening |
+
+## See Also
+
+- [Security Best Practices](/docs/cli/scenarios/expectations/)

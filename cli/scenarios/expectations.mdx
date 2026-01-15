@@ -1,0 +1,131 @@
+---
+title: Expectations
+description: Learn about evaluation matchers and expectations
+---
+
+# Expectations
+
+Expectations define how ArtemisKit evaluates LLM responses. You can use multiple matcher types.
+
+## Matcher Types
+
+### Contains Matcher
+
+Check if response contains specific strings (case-insensitive):
+
+```yaml
+expect:
+  contains: ["hello", "welcome"]
+```
+
+### Not Contains Matcher
+
+Ensure response doesn't contain unwanted strings:
+
+```yaml
+expect:
+  not_contains: ["error", "sorry", "I don't know"]
+```
+
+### Exact Match
+
+Check for exact string match:
+
+```yaml
+expect:
+  type: exact
+  value: "The answer is 42."
+```
+
+### Regex Match
+
+Match against a regular expression:
+
+```yaml
+expect:
+  type: regex
+  pattern: "\\d{4}-\\d{2}-\\d{2}"  # Date format
+```
+
+### Fuzzy Match
+
+Allow approximate matching with Levenshtein distance:
+
+```yaml
+expect:
+  type: fuzzy
+  value: "approximately this text"
+  threshold: 0.8  # 80% similarity required
+```
+
+### LLM Grader
+
+Use an LLM to evaluate the response:
+
+```yaml
+expect:
+  type: llm_grader
+  criteria: "Response is helpful and accurate"
+  rubric: |
+    Score 1: Completely incorrect or unhelpful
+    Score 2: Partially correct but missing key information
+    Score 3: Correct and helpful response
+  min_score: 2
+```
+
+### Custom Matcher
+
+Use a custom JavaScript function:
+
+```yaml
+expect:
+  type: custom
+  function: |
+    (response) => {
+      const wordCount = response.split(' ').length;
+      return wordCount >= 10 && wordCount <= 100;
+    }
+```
+
+## Combining Matchers
+
+You can combine multiple expectations:
+
+```yaml
+expect:
+  contains: ["product", "price"]
+  not_contains: ["error"]
+  type: llm_grader
+  criteria: "Response is professional and accurate"
+```
+
+## Threshold Configuration
+
+For fuzzy and LLM grader matchers:
+
+```yaml
+expect:
+  type: fuzzy
+  value: "expected text"
+  threshold: 0.85  # Similarity threshold (0-1)
+```
+
+```yaml
+expect:
+  type: llm_grader
+  criteria: "Response is helpful"
+  min_score: 2     # Minimum required score
+  max_score: 3     # Maximum possible score
+```
+
+## Best Practices
+
+1. **Start simple** — Use `contains` for basic checks
+2. **Be specific** — Avoid overly broad expectations
+3. **Use LLM graders sparingly** — They add latency and cost
+4. **Test your expectations** — Run evaluations to verify matchers work as intended
+
+## See Also
+
+- [Scenario Format](/docs/cli/scenarios/format/)
+- [Run Command](/docs/cli/commands/run/)

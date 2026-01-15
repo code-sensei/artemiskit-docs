@@ -1,0 +1,55 @@
+---
+title: Azure OpenAI
+description: Configure ArtemisKit with Azure OpenAI Service
+---
+
+# Azure OpenAI Provider
+
+Use ArtemisKit with Azure OpenAI Service.
+
+## Setup
+
+### 1. Create Azure OpenAI Resource
+
+Create an Azure OpenAI resource in the [Azure Portal](https://portal.azure.com).
+
+### 2. Set Environment Variables
+
+```bash
+export AZURE_OPENAI_API_KEY="your-key"
+export AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com"
+export AZURE_OPENAI_DEPLOYMENT="your-deployment-name"
+```
+
+### 3. Configure Scenario
+
+```yaml
+config:
+  provider: azure
+  model: gpt-4  # Your deployment name
+```
+
+## Configuration Options
+
+```yaml
+config:
+  provider: azure
+  model: my-gpt4-deployment
+  api_version: "2024-02-15-preview"
+  temperature: 0
+  max_tokens: 1000
+```
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `AZURE_OPENAI_API_KEY` | Your Azure OpenAI API key |
+| `AZURE_OPENAI_ENDPOINT` | Your resource endpoint URL |
+| `AZURE_OPENAI_DEPLOYMENT` | Default deployment name |
+| `AZURE_OPENAI_API_VERSION` | API version (optional) |
+
+## See Also
+
+- [OpenAI](/docs/cli/providers/openai/)
+- [Scenario Format](/docs/cli/scenarios/format/)

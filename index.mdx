@@ -1,0 +1,53 @@
+---
+title: Introduction to ArtemisKit
+description: Learn about ArtemisKit, the open-source LLM evaluation toolkit
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# Welcome to ArtemisKit
+
+ArtemisKit is an open-source toolkit for evaluating LLM applications. It provides systematic testing for:
+
+- **Quality Assurance** — Test prompts and responses with scenario-based testing
+- **Security** — Red team your LLM for vulnerabilities
+- **Performance** — Stress test under load
+
+## Packages
+
+ArtemisKit is available as multiple packages:
+
+| Package | npm Name | Description |
+|---------|----------|-------------|
+| CLI | `@artemiskit/cli` | Command-line interface (`artemiskit`, `akit`) |
+| Core | `@artemiskit/core` | Core library (coming soon) |
+
+## Which Should I Use?
+
+<CardGrid>
+  <Card title="CLI (@artemiskit/cli)" icon="terminal">
+    Best for most users. Run evaluations from the command line, integrate with CI/CD, and generate reports.
+    
+    [Get started →](/docs/cli/getting-started/)
+  </Card>
+  <Card title="API (@artemiskit/core)" icon="puzzle">
+    For embedding evaluations in your own code, test frameworks (Jest, Vitest), or custom tooling. Coming in v0.2.0.
+    
+    [Learn more →](/docs/api/)
+  </Card>
+</CardGrid>
+
+## Quick Example (CLI)
+
+```bash
+# Install
+npm install -g @artemiskit/cli
+
+# Run a scenario
+akit run scenarios/hello-world.yaml
+```
+
+## Next Steps
+
+- [CLI Documentation](/docs/cli/) — Get started with the CLI
+- [API Documentation](/docs/api/) — Programmatic usage (coming soon)

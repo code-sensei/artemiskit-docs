@@ -1,0 +1,83 @@
+---
+title: artemiskit compare
+description: Compare two evaluation runs
+---
+
+# artemiskit compare
+
+Compare metrics between two evaluation runs to detect regressions.
+
+## Synopsis
+
+```bash
+artemiskit compare <baseline> <current> [options]
+akit compare <baseline> <current> [options]
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `baseline` | Path to baseline run_manifest.json |
+| `current` | Path to current run_manifest.json |
+
+## Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--output, -o` | Output directory | artemis-output |
+| `--threshold` | Regression threshold (%) | 5 |
+| `--strict` | Fail on any regression | false |
+
+## Examples
+
+### Basic Comparison
+
+```bash
+akit compare ./baseline/run_manifest.json ./current/run_manifest.json
+```
+
+### With Custom Threshold
+
+```bash
+akit compare baseline.json current.json --threshold 10
+```
+
+### Strict Mode (CI/CD)
+
+```bash
+akit compare baseline.json current.json --strict
+```
+
+## Output
+
+The compare command outputs:
+
+| Metric | Baseline | Current | Delta |
+|--------|----------|---------|-------|
+| Success Rate | 95% | 92% | -3% |
+| Avg Latency | 200ms | 220ms | +10% |
+| P99 Latency | 800ms | 850ms | +6% |
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | No significant regressions |
+| 1 | Regressions detected (above threshold) |
+| 2 | Error during comparison |
+
+## CI/CD Integration
+
+Use in GitHub Actions:
+
+```yaml
+- name: Compare with baseline
+  run: |
+    akit compare ./baseline.json ./current.json --strict
+```
+
+## See Also
+
+- [CI/CD Integration](/docs/cli/ci-cd/)
+- [Run Command](/docs/cli/commands/run/)

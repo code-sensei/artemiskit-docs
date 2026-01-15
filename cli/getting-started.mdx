@@ -1,0 +1,75 @@
+---
+title: Getting Started
+description: Get up and running with ArtemisKit CLI in 5 minutes
+---
+
+# Getting Started
+
+Get ArtemisKit CLI running in under 5 minutes.
+
+## Prerequisites
+
+- Node.js 18+ or Bun 1.0+
+- An API key for your LLM provider (OpenAI, Azure, etc.)
+
+## Step 1: Install
+
+```bash
+npm install -g @artemiskit/cli
+```
+
+Verify installation:
+
+```bash
+akit --version
+```
+
+## Step 2: Set Up API Key
+
+```bash
+export OPENAI_API_KEY="your-api-key"
+```
+
+## Step 3: Create Your First Scenario
+
+Create `scenarios/first-test.yaml`:
+
+```yaml
+name: first-test
+description: My first ArtemisKit test
+
+config:
+  provider: openai
+  model: gpt-4
+
+scenarios:
+  - name: basic-math
+    turns:
+      - role: user
+        content: "What is 2 + 2?"
+      - role: assistant
+        expect:
+          contains: ["4"]
+```
+
+## Step 4: Run the Test
+
+```bash
+akit run scenarios/first-test.yaml
+```
+
+## Step 5: View Results
+
+For a detailed HTML report:
+
+```bash
+akit run scenarios/first-test.yaml --save
+```
+
+Open `artemis-output/run_*.html` in your browser.
+
+## Next Steps
+
+- [Scenario Format](/docs/cli/scenarios/format/) — Learn full scenario syntax
+- [Security Testing](/docs/cli/commands/redteam/) — Run security evaluations
+- [CI/CD Integration](/docs/cli/ci-cd/) — Automate in your pipeline

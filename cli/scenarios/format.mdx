@@ -1,0 +1,157 @@
+---
+title: Scenario Format
+description: Learn the YAML scenario file format
+---
+
+# Scenario Format
+
+ArtemisKit scenarios are defined in YAML files. This page covers the complete schema.
+
+## Basic Structure
+
+```yaml
+name: my-evaluation
+description: Description of this evaluation
+
+config:
+  provider: openai
+  model: gpt-4
+  seed: 42
+
+scenarios:
+  - name: scenario-name
+    turns:
+      - role: user
+        content: "User message"
+      - role: assistant
+        expect:
+          contains: ["expected", "text"]
+```
+
+## Top-Level Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Unique identifier for the evaluation |
+| `description` | string | No | Human-readable description |
+| `config` | object | No | Default configuration |
+| `scenarios` | array | Yes | List of test scenarios |
+
+## Config Object
+
+```yaml
+config:
+  provider: openai      # LLM provider
+  model: gpt-4          # Model name
+  seed: 42              # Random seed for reproducibility
+  temperature: 0        # Model temperature
+  max_tokens: 1000      # Max response tokens
+  timeout: 30000        # Request timeout (ms)
+```
+
+## Scenario Object
+
+```yaml
+scenarios:
+  - name: scenario-name       # Required: unique name
+    description: "..."        # Optional: description
+    tags: [regression, qa]    # Optional: tags for filtering
+    turns:                    # Required: conversation turns
+      - role: user
+        content: "..."
+      - role: assistant
+        expect: { ... }
+```
+
+## Turn Object
+
+Each turn represents one message in the conversation:
+
+```yaml
+turns:
+  - role: user              # 'user', 'assistant', or 'system'
+    content: "Message text" # The message content
+    expect:                 # Optional: expectations (assistant only)
+      contains: ["word"]
+```
+
+## Variables
+
+Use variables for dynamic content:
+
+```yaml
+config:
+  variables:
+    product_name: "ArtemisKit"
+    
+scenarios:
+  - name: with-variables
+    turns:
+      - role: user
+        content: "Tell me about {{product_name}}"
+```
+
+## Multi-Turn Conversations
+
+```yaml
+scenarios:
+  - name: multi-turn-chat
+    turns:
+      - role: system
+        content: "You are a helpful assistant."
+      - role: user
+        content: "What is 2+2?"
+      - role: assistant
+        expect:
+          contains: ["4"]
+      - role: user
+        content: "And what is that times 3?"
+      - role: assistant
+        expect:
+          contains: ["12"]
+```
+
+## Complete Example
+
+```yaml
+name: customer-support-bot
+description: Evaluation suite for customer support chatbot
+
+config:
+  provider: openai
+  model: gpt-4
+  seed: 42
+  temperature: 0
+
+scenarios:
+  - name: greeting
+    description: Test greeting responses
+    tags: [basic, regression]
+    turns:
+      - role: system
+        content: "You are a friendly customer support agent."
+      - role: user
+        content: "Hello!"
+      - role: assistant
+        expect:
+          contains: ["hello", "hi", "welcome"]
+          not_contains: ["error", "sorry"]
+          
+  - name: product-inquiry
+    description: Test product information
+    tags: [product, qa]
+    turns:
+      - role: system
+        content: "You are a customer support agent for TechCorp."
+      - role: user
+        content: "What products do you sell?"
+      - role: assistant
+        expect:
+          type: llm_grader
+          criteria: "Response mentions at least 2 product categories"
+```
+
+## See Also
+
+- [Expectations](/docs/cli/scenarios/expectations/) — Learn about matchers
+- [Run Command](/docs/cli/commands/run/) — Execute scenarios

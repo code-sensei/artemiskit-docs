@@ -1,0 +1,80 @@
+---
+title: artemiskit run
+description: Run scenario-based evaluations
+---
+
+# artemiskit run
+
+Run scenario-based evaluations against your LLM.
+
+## Synopsis
+
+```bash
+artemiskit run <scenario-file> [options]
+akit run <scenario-file> [options]
+```
+
+## Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--provider, -p` | LLM provider | From config |
+| `--model, -m` | Model name | Provider default |
+| `--save` | Save results to disk | false |
+| `--output, -o` | Output directory | artemis-output |
+| `--format` | Report format (html, json) | html |
+| `--timeout` | Request timeout (ms) | 30000 |
+| `--seed` | Random seed for reproducibility | Random |
+| `--verbose, -v` | Verbose output | false |
+
+## Examples
+
+### Basic Run
+
+```bash
+akit run scenarios/qa-test.yaml
+```
+
+### With Provider Override
+
+```bash
+akit run scenarios/qa-test.yaml -p anthropic -m claude-3-opus-20240229
+```
+
+### Save Results
+
+```bash
+akit run scenarios/qa-test.yaml --save -o ./reports
+```
+
+### JSON Output
+
+```bash
+akit run scenarios/qa-test.yaml --save --format json
+```
+
+### Reproducible Run
+
+```bash
+akit run scenarios/qa-test.yaml --seed 42
+```
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | All scenarios passed |
+| 1 | One or more scenarios failed |
+| 2 | Configuration or runtime error |
+
+## Output
+
+When `--save` is used, ArtemisKit creates:
+
+- `run_manifest.json` — Complete run metadata and results
+- `report.html` — Interactive HTML report (if format includes html)
+
+## See Also
+
+- [Scenario Format](/docs/cli/scenarios/format/)
+- [Expectations](/docs/cli/scenarios/expectations/)

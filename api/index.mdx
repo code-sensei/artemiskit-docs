@@ -1,0 +1,71 @@
+---
+title: API Overview
+description: ArtemisKit Core API documentation
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+# ArtemisKit Core API
+
+<Aside type="caution" title="Coming Soon">
+  The programmatic API (`@artemiskit/core`) is coming in v0.2.0. This documentation is a preview.
+</Aside>
+
+The ArtemisKit Core library allows you to embed LLM evaluation directly in your code.
+
+## Use Cases
+
+- **Test frameworks** — Integrate with Jest, Vitest, or Mocha
+- **Custom tooling** — Build your own evaluation pipelines
+- **Programmatic control** — Fine-grained configuration
+
+## Preview
+
+```typescript
+import { Evaluator, OpenAIProvider } from '@artemiskit/core';
+
+const evaluator = new Evaluator({
+  provider: new OpenAIProvider({
+    apiKey: process.env.OPENAI_API_KEY,
+    model: 'gpt-4',
+  }),
+});
+
+const result = await evaluator.run({
+  prompt: 'What is 2+2?',
+  expect: {
+    contains: ['4'],
+  },
+});
+
+console.log(result.passed); // true
+```
+
+## Jest Integration (Preview)
+
+```typescript
+import { createMatcher } from '@artemiskit/jest';
+
+const evaluateLLM = createMatcher({
+  provider: 'openai',
+  model: 'gpt-4',
+});
+
+describe('Chatbot', () => {
+  it('answers math questions', async () => {
+    const response = await chatbot.ask('What is 2+2?');
+    await expect(response).toPassEvaluation({
+      contains: ['4'],
+    });
+  });
+});
+```
+
+## Stay Updated
+
+Join the [waitlist](/#waitlist) to be notified when the API is released.
+
+## See Also
+
+- [CLI Documentation](/docs/cli/) — Use the CLI today
+- [Getting Started](/docs/cli/getting-started/)

@@ -1,0 +1,66 @@
+---
+title: Installation
+description: Install ArtemisKit CLI on your system
+---
+
+# Installation
+
+Get ArtemisKit CLI installed on your system.
+
+## Prerequisites
+
+- Node.js 18+ or Bun 1.0+
+- An API key for your LLM provider (OpenAI, Azure, Anthropic, etc.)
+
+## Install via npm
+
+```bash
+npm install -g @artemiskit/cli
+```
+
+## Install via pnpm
+
+```bash
+pnpm add -g @artemiskit/cli
+```
+
+## Install via yarn
+
+```bash
+yarn global add @artemiskit/cli
+```
+
+## Install via bun
+
+```bash
+bun add -g @artemiskit/cli
+```
+
+## Verify Installation
+
+```bash
+artemiskit --version
+# or
+akit --version
+```
+
+You should see output like:
+
+```
+ArtemisKit CLI v0.1.0
+```
+
+## Run Without Installing
+
+You can also run ArtemisKit without global installation:
+
+```bash
+npx @artemiskit/cli run scenarios/test.yaml
+# or
+bunx @artemiskit/cli run scenarios/test.yaml
+```
+
+## Next Steps
+
+- [Getting Started](/docs/cli/getting-started/) — Run your first evaluation
+- [Configuration](/docs/cli/scenarios/format/) — Learn the scenario format

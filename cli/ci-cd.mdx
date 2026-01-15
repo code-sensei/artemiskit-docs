@@ -1,0 +1,145 @@
+---
+title: CI/CD Integration
+description: Integrate ArtemisKit into your CI/CD pipeline
+---
+
+# CI/CD Integration
+
+Automate LLM evaluation as part of your deployment pipeline.
+
+## GitHub Actions
+
+### Basic Workflow
+
+```yaml
+# .github/workflows/llm-evaluation.yml
+name: LLM Evaluation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install ArtemisKit
+        run: npm install -g @artemiskit/cli
+        
+      - name: Run Evaluation
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: akit run scenarios/regression.yaml --save
+        
+      - name: Upload Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-results
+          path: artemis-output/
+```
+
+### With Regression Detection
+
+```yaml
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download Baseline
+        uses: actions/download-artifact@v4
+        with:
+          name: baseline-results
+          path: ./baseline
+        continue-on-error: true
+        
+      - name: Install ArtemisKit
+        run: npm install -g @artemiskit/cli
+        
+      - name: Run Evaluation
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: akit run scenarios/regression.yaml --save
+        
+      - name: Compare with Baseline
+        if: hashFiles('baseline/run_manifest.json') != ''
+        run: |
+          akit compare baseline/run_manifest.json artemis-output/run_manifest.json --strict
+          
+      - name: Update Baseline
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: baseline-results
+          path: artemis-output/
+```
+
+## Exit Codes
+
+Use exit codes to fail builds:
+
+| Code | Meaning | Action |
+|------|---------|--------|
+| 0 | All tests passed | Continue |
+| 1 | Tests failed | Fail build |
+| 2 | Configuration error | Fail build |
+
+## Environment Variables
+
+Store secrets securely:
+
+```yaml
+env:
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+## Scheduled Runs
+
+Run evaluations on a schedule:
+
+```yaml
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Daily at midnight
+```
+
+## GitLab CI
+
+```yaml
+# .gitlab-ci.yml
+llm-evaluation:
+  image: node:20
+  script:
+    - npm install -g @artemiskit/cli
+    - akit run scenarios/regression.yaml --save
+  artifacts:
+    paths:
+      - artemis-output/
+    expire_in: 30 days
+  variables:
+    OPENAI_API_KEY: $OPENAI_API_KEY
+```
+
+## Best Practices
+
+1. **Store API keys as secrets** — Never commit API keys
+2. **Use deterministic seeds** — Ensure reproducible results
+3. **Set reasonable timeouts** — Prevent hanging builds
+4. **Archive results** — Keep history for comparison
+5. **Run on PRs** — Catch regressions before merge
+
+## See Also
+
+- [Compare Command](/docs/cli/commands/compare/)
+- [Run Command](/docs/cli/commands/run/)

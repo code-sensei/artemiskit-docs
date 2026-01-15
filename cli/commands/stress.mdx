@@ -1,0 +1,91 @@
+---
+title: artemiskit stress
+description: Load and stress testing for LLM endpoints
+---
+
+# artemiskit stress
+
+Test your LLM's performance under load.
+
+## Synopsis
+
+```bash
+artemiskit stress [options]
+akit stress [options]
+```
+
+## Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--prompt` | Test prompt | Required |
+| `--concurrency, -c` | Concurrent requests | 10 |
+| `--iterations, -n` | Total requests | 100 |
+| `--provider, -p` | LLM provider | From config |
+| `--model, -m` | Model name | Provider default |
+| `--save` | Save results | false |
+| `--output, -o` | Output directory | artemis-output |
+
+## Examples
+
+### Basic Stress Test
+
+```bash
+akit stress --prompt "Hello, how are you?"
+```
+
+### High Concurrency
+
+```bash
+akit stress --prompt "Summarize this text" \
+  -c 50 -n 500
+```
+
+### With Report
+
+```bash
+akit stress --prompt "Translate to Spanish" \
+  -c 25 -n 250 --save
+```
+
+## Metrics
+
+The stress test measures:
+
+| Metric | Description |
+|--------|-------------|
+| **Throughput** | Requests per second |
+| **Avg Latency** | Average response time |
+| **P50 Latency** | 50th percentile (median) |
+| **P95 Latency** | 95th percentile |
+| **P99 Latency** | 99th percentile |
+| **Success Rate** | Percentage of successful requests |
+| **Error Rate** | Failures and rate limiting |
+
+## Example Output
+
+```
+Stress Test Results
+==================
+Total Requests: 500
+Concurrency: 50
+Duration: 45.2s
+
+Throughput: 11.1 req/s
+Success Rate: 98.4%
+
+Latency Distribution:
+  Avg: 245ms
+  P50: 198ms
+  P95: 512ms
+  P99: 892ms
+  Min: 89ms
+  Max: 1,245ms
+
+Errors:
+  Rate Limited: 8 (1.6%)
+```
+
+## See Also
+
+- [Performance Best Practices](/docs/cli/ci-cd/)

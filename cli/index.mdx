@@ -1,0 +1,45 @@
+---
+title: CLI Overview
+description: ArtemisKit command-line interface documentation
+---
+
+# ArtemisKit CLI
+
+The ArtemisKit CLI (`@artemiskit/cli`) is the primary way to run LLM evaluations.
+
+## Installation
+
+```bash
+npm install -g @artemiskit/cli
+```
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `artemiskit run` | Run scenario-based evaluations |
+| `artemiskit redteam` | Security red team testing |
+| `artemiskit stress` | Load and stress testing |
+| `artemiskit report` | Regenerate reports from saved data |
+| `artemiskit compare` | Compare two runs |
+
+You can use `akit` as a shorter alias for `artemiskit`.
+
+## Quick Start
+
+```bash
+# Set your API key
+export OPENAI_API_KEY="your-key"
+
+# Run a scenario
+akit run scenarios/my-test.yaml
+
+# Save results
+akit run scenarios/my-test.yaml --save
+```
+
+## Next Steps
+
+- [Installation Guide](/docs/cli/installation/)
+- [Getting Started](/docs/cli/getting-started/)
+- [Command Reference](/docs/cli/commands/run/)

@@ -1,0 +1,48 @@
+---
+title: artemiskit report
+description: Regenerate reports from saved data
+---
+
+# artemiskit report
+
+Regenerate HTML reports from saved run manifests.
+
+## Synopsis
+
+```bash
+artemiskit report --input <manifest-file> [options]
+akit report --input <manifest-file> [options]
+```
+
+## Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--input, -i` | Path to run_manifest.json | Required |
+| `--output, -o` | Output directory | Same as input |
+| `--format` | Report format (html, json) | html |
+
+## Examples
+
+### Regenerate HTML Report
+
+```bash
+akit report -i artemis-output/run_manifest.json
+```
+
+### Custom Output Location
+
+```bash
+akit report -i ./results/run_manifest.json -o ./reports
+```
+
+## Use Cases
+
+- Regenerate reports after updating report templates
+- Create reports in different formats
+- Share reports without re-running evaluations
+
+## See Also
+
+- [Run Command](/docs/cli/commands/run/)
+- [Compare Command](/docs/cli/commands/compare/)
