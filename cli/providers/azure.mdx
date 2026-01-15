@@ -7,37 +7,59 @@ description: Configure ArtemisKit with Azure OpenAI Service
 
 Use ArtemisKit with Azure OpenAI Service.
 
+## Important: Model vs Deployment
+
+**The `model` field in your scenario is for display purposes only when using Azure OpenAI.**
+
+Unlike standard OpenAI, Azure OpenAI uses deployments. The actual model is determined by your Azure deployment configuration, not by what you specify in ArtemisKit.
+
 ## Setup
 
 ### 1. Create Azure OpenAI Resource
 
-Create an Azure OpenAI resource in the [Azure Portal](https://portal.azure.com).
+Create an Azure OpenAI resource in the [Azure Portal](https://portal.azure.com) and deploy a model.
 
 ### 2. Set Environment Variables
 
 ```bash
 export AZURE_OPENAI_API_KEY="your-key"
-export AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com"
-export AZURE_OPENAI_DEPLOYMENT="your-deployment-name"
+export AZURE_OPENAI_RESOURCE_NAME="your-resource-name"
+export AZURE_OPENAI_DEPLOYMENT_NAME="your-deployment-name"
+export AZURE_OPENAI_API_VERSION="2024-02-15-preview"  # Optional
 ```
 
 ### 3. Configure Scenario
 
 ```yaml
-config:
-  provider: azure
-  model: gpt-4  # Your deployment name
+name: my-test
+provider: azure-openai
+model: gpt-4o  # Display only - actual model is your deployment
+
+cases:
+  - id: example
+    prompt: "Hello"
+    expected:
+      type: contains
+      values: ["hello"]
+      mode: any
 ```
 
-## Configuration Options
+## Config File
+
+Configure Azure OpenAI in your `artemis.config.yaml`:
 
 ```yaml
-config:
-  provider: azure
-  model: my-gpt4-deployment
-  api_version: "2024-02-15-preview"
-  temperature: 0
-  max_tokens: 1000
+provider: azure-openai
+model: gpt-4o  # Display only
+
+providers:
+  azure-openai:
+    apiKey: ${AZURE_OPENAI_API_KEY}
+    resourceName: ${AZURE_OPENAI_RESOURCE_NAME}
+    deploymentName: ${AZURE_OPENAI_DEPLOYMENT_NAME}
+    apiVersion: 2024-02-15-preview
+    timeout: 60000
+    maxRetries: 2
 ```
 
 ## Environment Variables
@@ -45,9 +67,38 @@ config:
 | Variable | Description |
 |----------|-------------|
 | `AZURE_OPENAI_API_KEY` | Your Azure OpenAI API key |
-| `AZURE_OPENAI_ENDPOINT` | Your resource endpoint URL |
-| `AZURE_OPENAI_DEPLOYMENT` | Default deployment name |
+| `AZURE_OPENAI_RESOURCE_NAME` | Your resource name |
+| `AZURE_OPENAI_DEPLOYMENT_NAME` | Your deployment name |
 | `AZURE_OPENAI_API_VERSION` | API version (optional) |
+
+## API Versions
+
+Common API versions:
+
+- `2024-02-15-preview` (recommended)
+- `2023-12-01-preview`
+- `2023-05-15`
+
+## Troubleshooting
+
+### Authentication Error
+
+```
+Error: 401 Unauthorized
+```
+
+Check that:
+- `AZURE_OPENAI_API_KEY` is correct
+- `AZURE_OPENAI_RESOURCE_NAME` matches your Azure resource
+- The API key has access to the resource
+
+### Deployment Not Found
+
+```
+Error: 404 DeploymentNotFound
+```
+
+Ensure `AZURE_OPENAI_DEPLOYMENT_NAME` matches an existing deployment in your Azure resource.
 
 ## See Also
 

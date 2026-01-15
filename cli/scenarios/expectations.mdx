@@ -5,127 +5,288 @@ description: Learn about evaluation matchers and expectations
 
 # Expectations
 
-Expectations define how ArtemisKit evaluates LLM responses. You can use multiple matcher types.
+Expectations define how ArtemisKit evaluates LLM responses. Each test case requires exactly one `expected` object with a `type` field.
 
-## Matcher Types
+## Available Expectation Types
 
-### Contains Matcher
+| Type | Description |
+|------|-------------|
+| `contains` | Check if response contains specific strings |
+| `exact` | Check for exact string match |
+| `regex` | Match against a regular expression |
+| `fuzzy` | Approximate string matching |
+| `llm_grader` | Use an LLM to evaluate the response |
+| `json_schema` | Validate response against a JSON schema |
+| `custom` | Use a custom evaluator |
 
-Check if response contains specific strings (case-insensitive):
+## Contains
+
+Check if the response contains specific strings. Use `mode` to control matching behavior.
 
 ```yaml
-expect:
-  contains: ["hello", "welcome"]
+expected:
+  type: contains
+  values:
+    - "hello"
+    - "welcome"
+  mode: any  # 'any' = at least one match, 'all' = all must match
 ```
 
-### Not Contains Matcher
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | Yes | Must be `contains` |
+| `values` | array | Yes | Array of strings to look for |
+| `mode` | string | Yes | `all` (default) or `any` |
 
-Ensure response doesn't contain unwanted strings:
+### Examples
 
+Match any of the values:
 ```yaml
-expect:
-  not_contains: ["error", "sorry", "I don't know"]
+expected:
+  type: contains
+  values: ["hello", "hi", "hey"]
+  mode: any
 ```
 
-### Exact Match
+Match all values:
+```yaml
+expected:
+  type: contains
+  values: ["price", "available"]
+  mode: all
+```
 
-Check for exact string match:
+## Exact
+
+Check for an exact string match.
 
 ```yaml
-expect:
+expected:
   type: exact
   value: "The answer is 42."
+  caseSensitive: true  # Optional, default: true
 ```
 
-### Regex Match
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | Yes | Must be `exact` |
+| `value` | string | Yes | The exact string to match |
+| `caseSensitive` | boolean | No | Case-sensitive matching (default: true) |
 
-Match against a regular expression:
+### Example
 
 ```yaml
-expect:
+expected:
+  type: exact
+  value: "Hello, World!"
+  caseSensitive: false
+```
+
+## Regex
+
+Match the response against a regular expression.
+
+```yaml
+expected:
   type: regex
-  pattern: "\\d{4}-\\d{2}-\\d{2}"  # Date format
+  pattern: "\\d{4}-\\d{2}-\\d{2}"  # Date format YYYY-MM-DD
+  flags: "i"  # Optional: regex flags
 ```
 
-### Fuzzy Match
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | Yes | Must be `regex` |
+| `pattern` | string | Yes | Regular expression pattern |
+| `flags` | string | No | Regex flags (e.g., `i` for case-insensitive) |
 
-Allow approximate matching with Levenshtein distance:
+### Examples
+
+Match an email:
+```yaml
+expected:
+  type: regex
+  pattern: "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
+```
+
+Case-insensitive match:
+```yaml
+expected:
+  type: regex
+  pattern: "hello.*world"
+  flags: "i"
+```
+
+## Fuzzy
+
+Allow approximate matching using string similarity. Uses Levenshtein distance.
 
 ```yaml
-expect:
+expected:
   type: fuzzy
   value: "approximately this text"
   threshold: 0.8  # 80% similarity required
 ```
 
-### LLM Grader
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | Yes | Must be `fuzzy` |
+| `value` | string | Yes | The expected text |
+| `threshold` | number | No | Similarity threshold 0-1 (default: 0.8) |
 
-Use an LLM to evaluate the response:
-
-```yaml
-expect:
-  type: llm_grader
-  criteria: "Response is helpful and accurate"
-  rubric: |
-    Score 1: Completely incorrect or unhelpful
-    Score 2: Partially correct but missing key information
-    Score 3: Correct and helpful response
-  min_score: 2
-```
-
-### Custom Matcher
-
-Use a custom JavaScript function:
+### Example
 
 ```yaml
-expect:
-  type: custom
-  function: |
-    (response) => {
-      const wordCount = response.split(' ').length;
-      return wordCount >= 10 && wordCount <= 100;
-    }
-```
-
-## Combining Matchers
-
-You can combine multiple expectations:
-
-```yaml
-expect:
-  contains: ["product", "price"]
-  not_contains: ["error"]
-  type: llm_grader
-  criteria: "Response is professional and accurate"
-```
-
-## Threshold Configuration
-
-For fuzzy and LLM grader matchers:
-
-```yaml
-expect:
+expected:
   type: fuzzy
-  value: "expected text"
-  threshold: 0.85  # Similarity threshold (0-1)
+  value: "The quick brown fox jumps over the lazy dog"
+  threshold: 0.75
 ```
 
+## LLM Grader
+
+Use an LLM to evaluate the response quality based on a rubric.
+
 ```yaml
-expect:
+expected:
   type: llm_grader
-  criteria: "Response is helpful"
-  min_score: 2     # Minimum required score
-  max_score: 3     # Maximum possible score
+  rubric: |
+    Evaluate the response based on:
+    - Accuracy of information
+    - Helpfulness and clarity
+    - Professional tone
+  threshold: 0.7  # Minimum score (0-1)
+  provider: openai  # Optional: override provider
+  model: gpt-4o     # Optional: override model
 ```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | Yes | Must be `llm_grader` |
+| `rubric` | string | Yes | Evaluation criteria for the grader |
+| `threshold` | number | No | Minimum passing score 0-1 (default: 0.7) |
+| `provider` | string | No | Provider for the grader LLM |
+| `model` | string | No | Model for the grader LLM |
+
+### Example
+
+```yaml
+expected:
+  type: llm_grader
+  rubric: |
+    Score the response on these criteria:
+    1. Does it directly answer the question?
+    2. Is the information accurate?
+    3. Is it concise without unnecessary information?
+  threshold: 0.8
+```
+
+## JSON Schema
+
+Validate that the response is valid JSON matching a schema.
+
+```yaml
+expected:
+  type: json_schema
+  schema:
+    type: object
+    required:
+      - name
+      - age
+    properties:
+      name:
+        type: string
+      age:
+        type: number
+        minimum: 0
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | Yes | Must be `json_schema` |
+| `schema` | object | Yes | JSON Schema definition |
+
+### Example
+
+```yaml
+expected:
+  type: json_schema
+  schema:
+    type: object
+    required:
+      - status
+      - data
+    properties:
+      status:
+        type: string
+        enum: ["success", "error"]
+      data:
+        type: array
+        items:
+          type: object
+```
+
+## Custom
+
+Use a custom evaluator function.
+
+```yaml
+expected:
+  type: custom
+  evaluator: "word-count-validator"
+  config:
+    minWords: 10
+    maxWords: 100
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | Yes | Must be `custom` |
+| `evaluator` | string | Yes | Name of the custom evaluator |
+| `config` | object | No | Configuration for the evaluator |
 
 ## Best Practices
 
-1. **Start simple** — Use `contains` for basic checks
-2. **Be specific** — Avoid overly broad expectations
-3. **Use LLM graders sparingly** — They add latency and cost
-4. **Test your expectations** — Run evaluations to verify matchers work as intended
+1. **Start with `contains`** — It's the simplest and most common matcher
+2. **Use `mode: any`** — When checking for synonyms or variations
+3. **Use `mode: all`** — When multiple concepts must be present
+4. **Reserve `llm_grader` for complex evaluations** — It adds latency and cost
+5. **Use `json_schema` for structured outputs** — When your LLM returns JSON
+6. **Set appropriate thresholds** — Too strict causes false failures, too lenient misses issues
+
+## Common Patterns
+
+### Checking for synonyms
+```yaml
+expected:
+  type: contains
+  values: ["yes", "correct", "right", "affirmative"]
+  mode: any
+```
+
+### Ensuring multiple topics are covered
+```yaml
+expected:
+  type: contains
+  values: ["pricing", "features", "support"]
+  mode: all
+```
+
+### Validating formatted output
+```yaml
+expected:
+  type: regex
+  pattern: "^\\d+\\.\\s+.+"  # Numbered list format
+```
+
+### Quality evaluation
+```yaml
+expected:
+  type: llm_grader
+  rubric: "Response is helpful, accurate, and professionally written"
+  threshold: 0.8
+```
 
 ## See Also
 
-- [Scenario Format](/docs/cli/scenarios/format/)
-- [Run Command](/docs/cli/commands/run/)
+- [Scenario Format](/docs/cli/scenarios/format/) — Full scenario structure
+- [Run Command](/docs/cli/commands/run/) — Execute scenarios

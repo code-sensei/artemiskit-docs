@@ -14,18 +14,26 @@ artemiskit run <scenario-file> [options]
 akit run <scenario-file> [options]
 ```
 
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `scenario-file` | Path to the YAML scenario file |
+
 ## Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--provider, -p` | LLM provider | From config |
-| `--model, -m` | Model name | Provider default |
-| `--save` | Save results to disk | false |
-| `--output, -o` | Output directory | artemis-output |
-| `--format` | Report format (html, json) | html |
-| `--timeout` | Request timeout (ms) | 30000 |
-| `--seed` | Random seed for reproducibility | Random |
-| `--verbose, -v` | Verbose output | false |
+| Option | Short | Description | Default |
+|--------|-------|-------------|---------|
+| `--provider` | `-p` | LLM provider to use | From config/scenario |
+| `--model` | `-m` | Model name | From config/scenario |
+| `--output` | `-o` | Output directory for results | `artemis-output` |
+| `--verbose` | `-v` | Verbose output | `false` |
+| `--tags` | `-t` | Filter test cases by tags | All cases |
+| `--save` | | Save results to storage | `true` |
+| `--concurrency` | `-c` | Number of concurrent test cases | `1` |
+| `--timeout` | | Timeout per test case (ms) | From config |
+| `--retries` | | Number of retries per test case | From config |
+| `--config` | | Path to config file | `artemis.config.yaml` |
 
 ## Examples
 
@@ -38,7 +46,13 @@ akit run scenarios/qa-test.yaml
 ### With Provider Override
 
 ```bash
-akit run scenarios/qa-test.yaml -p anthropic -m claude-3-opus-20240229
+akit run scenarios/qa-test.yaml -p anthropic -m claude-3-5-sonnet-20241022
+```
+
+### Filter by Tags
+
+```bash
+akit run scenarios/qa-test.yaml --tags regression security
 ```
 
 ### Save Results
@@ -47,34 +61,63 @@ akit run scenarios/qa-test.yaml -p anthropic -m claude-3-opus-20240229
 akit run scenarios/qa-test.yaml --save -o ./reports
 ```
 
-### JSON Output
+### Concurrent Execution
 
 ```bash
-akit run scenarios/qa-test.yaml --save --format json
+akit run scenarios/qa-test.yaml --concurrency 5
 ```
 
-### Reproducible Run
+### Verbose Output
 
 ```bash
-akit run scenarios/qa-test.yaml --seed 42
+akit run scenarios/qa-test.yaml -v
+```
+
+### Custom Config
+
+```bash
+akit run scenarios/qa-test.yaml --config ./custom-config.yaml
 ```
 
 ## Exit Codes
 
 | Code | Meaning |
 |------|---------|
-| 0 | All scenarios passed |
-| 1 | One or more scenarios failed |
+| 0 | All test cases passed |
+| 1 | One or more test cases failed |
 | 2 | Configuration or runtime error |
 
 ## Output
 
-When `--save` is used, ArtemisKit creates:
+When `--save` is used, ArtemisKit creates files in the output directory:
 
 - `run_manifest.json` — Complete run metadata and results
-- `report.html` — Interactive HTML report (if format includes html)
+
+The manifest includes:
+- Run ID and timestamps
+- Provider and model used
+- All test case results with pass/fail status
+- Response latencies and token counts
+- Git information (if in a git repo)
+
+## Example Output
+
+```
+Running scenario: qa-test
+Provider: openai (gpt-4o)
+
+  ✓ greeting-test (234ms)
+  ✓ math-test (189ms)
+  ✗ complex-reasoning (512ms)
+    Expected: contains ["explanation"]
+    Got: Response did not contain expected values
+
+Results: 2/3 passed (66.7%)
+Total time: 1.2s
+```
 
 ## See Also
 
 - [Scenario Format](/docs/cli/scenarios/format/)
 - [Expectations](/docs/cli/scenarios/expectations/)
+- [Compare Command](/docs/cli/commands/compare/)

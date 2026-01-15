@@ -10,7 +10,7 @@ Get ArtemisKit CLI running in under 5 minutes.
 ## Prerequisites
 
 - Node.js 18+ or Bun 1.0+
-- An API key for your LLM provider (OpenAI, Azure, etc.)
+- An API key for your LLM provider (OpenAI, Azure, Anthropic, etc.)
 
 ## Step 1: Install
 
@@ -18,58 +18,136 @@ Get ArtemisKit CLI running in under 5 minutes.
 npm install -g @artemiskit/cli
 ```
 
+Or with other package managers:
+
+```bash
+# Bun
+bun add -g @artemiskit/cli
+
+# pnpm
+pnpm add -g @artemiskit/cli
+
+# Yarn
+yarn global add @artemiskit/cli
+```
+
 Verify installation:
 
 ```bash
+artemiskit --version
+# or use the shorthand
 akit --version
 ```
 
 ## Step 2: Set Up API Key
 
 ```bash
-export OPENAI_API_KEY="your-api-key"
+export OPENAI_API_KEY="sk-your-api-key"
+```
+
+Or for other providers:
+
+```bash
+# Anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# Azure OpenAI
+export AZURE_OPENAI_API_KEY="your-key"
+export AZURE_OPENAI_RESOURCE_NAME="your-resource"
+export AZURE_OPENAI_DEPLOYMENT_NAME="your-deployment"
 ```
 
 ## Step 3: Create Your First Scenario
 
-Create `scenarios/first-test.yaml`:
+Create a file called `hello-world.yaml`:
 
 ```yaml
-name: first-test
+name: hello-world
 description: My first ArtemisKit test
+provider: openai
+model: gpt-4o
 
-config:
-  provider: openai
-  model: gpt-4
+cases:
+  - id: basic-math
+    prompt: "What is 2 + 2?"
+    expected:
+      type: contains
+      values:
+        - "4"
+      mode: any
 
-scenarios:
-  - name: basic-math
-    turns:
-      - role: user
-        content: "What is 2 + 2?"
-      - role: assistant
-        expect:
-          contains: ["4"]
+  - id: greeting
+    prompt: "Say hello in a friendly way"
+    expected:
+      type: contains
+      values:
+        - "hello"
+        - "hi"
+        - "hey"
+      mode: any
 ```
 
 ## Step 4: Run the Test
 
 ```bash
-akit run scenarios/first-test.yaml
+artemiskit run hello-world.yaml
 ```
 
-## Step 5: View Results
-
-For a detailed HTML report:
+Or use the shorthand:
 
 ```bash
-akit run scenarios/first-test.yaml --save
+akit run hello-world.yaml
 ```
 
-Open `artemis-output/run_*.html` in your browser.
+You'll see output like:
+
+```
+Running scenario: hello-world
+  ✓ basic-math (234ms)
+  ✓ greeting (189ms)
+
+Results: 2/2 passed (100%)
+```
+
+## Step 5: Save and View Results
+
+Generate an HTML report:
+
+```bash
+akit run hello-world.yaml --save
+```
+
+This creates files in `artemis-output/`:
+- `run_manifest.json` — Complete run data
+- A timestamped report file
+
+## Step 6: Create a Config File (Optional)
+
+For consistent settings across runs, create `artemis.config.yaml`:
+
+```yaml
+provider: openai
+model: gpt-4o
+
+providers:
+  openai:
+    apiKey: ${OPENAI_API_KEY}
+    timeout: 60000
+
+output:
+  format: json
+  dir: ./artemis-output
+```
+
+Now you can run scenarios without specifying provider/model each time:
+
+```bash
+akit run hello-world.yaml
+```
 
 ## Next Steps
 
-- [Scenario Format](/docs/cli/scenarios/format/) — Learn full scenario syntax
-- [Security Testing](/docs/cli/commands/redteam/) — Run security evaluations
+- [Scenario Format](/docs/cli/scenarios/format/) — Learn the full scenario syntax
+- [Expectations](/docs/cli/scenarios/expectations/) — Explore all expectation types
+- [Commands](/docs/cli/commands/run/) — See all CLI options
 - [CI/CD Integration](/docs/cli/ci-cd/) — Automate in your pipeline

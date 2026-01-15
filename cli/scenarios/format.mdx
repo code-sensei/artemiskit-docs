@@ -12,146 +12,223 @@ ArtemisKit scenarios are defined in YAML files. This page covers the complete sc
 ```yaml
 name: my-evaluation
 description: Description of this evaluation
+provider: openai
+model: gpt-4o
 
-config:
-  provider: openai
-  model: gpt-4
-  seed: 42
-
-scenarios:
-  - name: scenario-name
-    turns:
-      - role: user
-        content: "User message"
-      - role: assistant
-        expect:
-          contains: ["expected", "text"]
+cases:
+  - id: test-case-id
+    prompt: "Your prompt here"
+    expected:
+      type: contains
+      values:
+        - "expected text"
+      mode: any
 ```
 
 ## Top-Level Fields
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `name` | string | Yes | Unique identifier for the evaluation |
+| `name` | string | Yes | Name of the scenario |
 | `description` | string | No | Human-readable description |
-| `config` | object | No | Default configuration |
-| `scenarios` | array | Yes | List of test scenarios |
+| `version` | string | No | Scenario version (default: "1.0") |
+| `provider` | string | No | LLM provider (openai, azure-openai, vercel-ai, anthropic, etc.) |
+| `model` | string | No | Model name |
+| `temperature` | number | No | Sampling temperature (0-2) |
+| `seed` | number | No | Random seed for reproducibility |
+| `maxTokens` | number | No | Maximum tokens in response |
+| `tags` | array | No | Tags for filtering |
+| `variables` | object | No | Key-value pairs for variable substitution |
+| `setup` | object | No | Setup configuration (system prompt, functions) |
+| `cases` | array | Yes | List of test cases |
+| `teardown` | object | No | Teardown configuration |
 
-## Config Object
+## Test Case Object
+
+Each test case requires an `id` and a `prompt`:
 
 ```yaml
-config:
-  provider: openai      # LLM provider
-  model: gpt-4          # Model name
-  seed: 42              # Random seed for reproducibility
-  temperature: 0        # Model temperature
-  max_tokens: 1000      # Max response tokens
-  timeout: 30000        # Request timeout (ms)
+cases:
+  - id: greeting-test          # Required: unique identifier
+    name: Greeting Test        # Optional: human-readable name
+    description: "Tests..."    # Optional: description
+    prompt: "Say hello"        # Required: the prompt (string or message array)
+    expected:                  # Required: expectation definition
+      type: contains
+      values: ["hello"]
+      mode: any
+    tags: [basic, regression]  # Optional: tags for filtering
+    timeout: 30000             # Optional: timeout in milliseconds
+    retries: 0                 # Optional: number of retries
+    provider: openai           # Optional: override scenario provider
+    model: gpt-4o              # Optional: override scenario model
+    variables:                 # Optional: case-level variables
+      name: "Alice"
 ```
 
-## Scenario Object
+## Setup Object
+
+Configure the system prompt and optional functions:
 
 ```yaml
-scenarios:
-  - name: scenario-name       # Required: unique name
-    description: "..."        # Optional: description
-    tags: [regression, qa]    # Optional: tags for filtering
-    turns:                    # Required: conversation turns
-      - role: user
-        content: "..."
-      - role: assistant
-        expect: { ... }
-```
-
-## Turn Object
-
-Each turn represents one message in the conversation:
-
-```yaml
-turns:
-  - role: user              # 'user', 'assistant', or 'system'
-    content: "Message text" # The message content
-    expect:                 # Optional: expectations (assistant only)
-      contains: ["word"]
+setup:
+  systemPrompt: "You are a helpful assistant."
+  functions: []  # Optional: function definitions for function calling
 ```
 
 ## Variables
 
-Use variables for dynamic content:
+Use `{{variable}}` syntax for dynamic content. Variables can be defined at the scenario level or case level:
 
 ```yaml
-config:
-  variables:
-    product_name: "ArtemisKit"
-    
-scenarios:
-  - name: with-variables
-    turns:
-      - role: user
-        content: "Tell me about {{product_name}}"
+name: variable-example
+variables:
+  product: "ArtemisKit"
+  version: "1.0"
+
+cases:
+  - id: with-variables
+    prompt: "Tell me about {{product}} version {{version}}"
+    expected:
+      type: contains
+      values: ["{{product}}"]
+      mode: any
+    variables:
+      version: "2.0"  # Overrides scenario-level variable
+```
+
+Variables support strings, numbers, and booleans:
+
+```yaml
+variables:
+  name: "Alice"      # string
+  count: 42          # number
+  enabled: true      # boolean
+```
+
+## Single-Turn Prompts
+
+For simple single-turn interactions, use a string prompt:
+
+```yaml
+cases:
+  - id: simple-test
+    prompt: "What is 2 + 2?"
+    expected:
+      type: contains
+      values: ["4"]
+      mode: any
 ```
 
 ## Multi-Turn Conversations
 
+For multi-turn conversations, use an array of messages in the `prompt` field:
+
 ```yaml
-scenarios:
-  - name: multi-turn-chat
-    turns:
-      - role: system
-        content: "You are a helpful assistant."
+cases:
+  - id: multi-turn-test
+    prompt:
       - role: user
-        content: "What is 2+2?"
+        content: "My name is Alice"
       - role: assistant
-        expect:
-          contains: ["4"]
+        content: "Nice to meet you, Alice!"
       - role: user
-        content: "And what is that times 3?"
-      - role: assistant
-        expect:
-          contains: ["12"]
+        content: "What is my name?"
+    expected:
+      type: contains
+      values: ["Alice"]
+      mode: any
 ```
+
+The system prompt from `setup.systemPrompt` is automatically prepended to multi-turn conversations.
+
+### Message Object
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `role` | string | Yes | One of: `system`, `user`, `assistant` |
+| `content` | string | Yes | The message content |
 
 ## Complete Example
 
 ```yaml
 name: customer-support-bot
 description: Evaluation suite for customer support chatbot
+provider: openai
+model: gpt-4o
+seed: 42
 
-config:
-  provider: openai
-  model: gpt-4
-  seed: 42
-  temperature: 0
+variables:
+  company: "TechCorp"
 
-scenarios:
-  - name: greeting
+setup:
+  systemPrompt: "You are a friendly customer support agent for {{company}}."
+
+cases:
+  - id: greeting
+    name: Greeting Test
     description: Test greeting responses
     tags: [basic, regression]
-    turns:
-      - role: system
-        content: "You are a friendly customer support agent."
-      - role: user
-        content: "Hello!"
-      - role: assistant
-        expect:
-          contains: ["hello", "hi", "welcome"]
-          not_contains: ["error", "sorry"]
-          
-  - name: product-inquiry
+    prompt: "Hello!"
+    expected:
+      type: contains
+      values:
+        - "hello"
+        - "hi"
+        - "welcome"
+      mode: any
+
+  - id: product-inquiry
+    name: Product Inquiry
     description: Test product information
     tags: [product, qa]
-    turns:
-      - role: system
-        content: "You are a customer support agent for TechCorp."
+    prompt: "What products do you sell?"
+    expected:
+      type: llm_grader
+      rubric: "Response mentions at least 2 product categories and is helpful"
+      threshold: 0.7
+
+  - id: context-retention
+    name: Context Retention Test
+    description: Test that the bot remembers context
+    tags: [advanced]
+    prompt:
       - role: user
-        content: "What products do you sell?"
+        content: "I'm interested in your premium plan"
       - role: assistant
-        expect:
-          type: llm_grader
-          criteria: "Response mentions at least 2 product categories"
+        content: "Great choice! Our premium plan includes..."
+      - role: user
+        content: "How much does it cost?"
+    expected:
+      type: contains
+      values:
+        - "price"
+        - "cost"
+        - "$"
+      mode: any
+```
+
+## Provider Configuration
+
+You can override provider settings at the scenario or case level:
+
+```yaml
+name: provider-override-example
+provider: openai
+model: gpt-4o
+
+cases:
+  - id: test-with-different-model
+    prompt: "Hello"
+    provider: anthropic
+    model: claude-3-5-sonnet-20241022
+    expected:
+      type: contains
+      values: ["hello"]
+      mode: any
 ```
 
 ## See Also
 
-- [Expectations](/docs/cli/scenarios/expectations/) — Learn about matchers
+- [Expectations](/docs/cli/scenarios/expectations/) — Learn about all expectation types
 - [Run Command](/docs/cli/commands/run/) — Execute scenarios

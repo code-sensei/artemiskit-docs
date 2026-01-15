@@ -22,31 +22,64 @@ export OPENAI_API_KEY="sk-..."
 ### 3. Configure Scenario
 
 ```yaml
-config:
-  provider: openai
-  model: gpt-4
+name: my-test
+provider: openai
+model: gpt-4o
+
+cases:
+  - id: example
+    prompt: "Hello"
+    expected:
+      type: contains
+      values: ["hello"]
+      mode: any
 ```
 
 ## Available Models
 
 | Model | Description |
 |-------|-------------|
-| `gpt-4` | Most capable GPT-4 model |
+| `gpt-4o` | Latest GPT-4o multimodal |
+| `gpt-4o-mini` | Smaller, faster GPT-4o |
 | `gpt-4-turbo` | GPT-4 Turbo with 128k context |
-| `gpt-4o` | Optimized GPT-4 |
+| `gpt-4` | Original GPT-4 |
 | `gpt-3.5-turbo` | Fast and cost-effective |
 
-## Configuration Options
+## Config File
+
+Configure OpenAI in your `artemis.config.yaml`:
 
 ```yaml
-config:
-  provider: openai
-  model: gpt-4
-  temperature: 0        # 0-2, lower = more deterministic
-  max_tokens: 1000      # Maximum response length
-  top_p: 1              # Nucleus sampling
-  frequency_penalty: 0  # Reduce repetition
-  presence_penalty: 0   # Encourage new topics
+provider: openai
+model: gpt-4o
+
+providers:
+  openai:
+    apiKey: ${OPENAI_API_KEY}
+    organization: ${OPENAI_ORG_ID}  # Optional
+    timeout: 60000
+    maxRetries: 2
+```
+
+## Scenario-Level Options
+
+Override settings in your scenario file:
+
+```yaml
+name: my-test
+provider: openai
+model: gpt-4o
+temperature: 0
+seed: 42
+maxTokens: 1000
+
+cases:
+  - id: example
+    prompt: "Hello"
+    expected:
+      type: contains
+      values: ["hello"]
+      mode: any
 ```
 
 ## Organization ID
@@ -55,6 +88,15 @@ If you belong to multiple organizations:
 
 ```bash
 export OPENAI_ORG_ID="org-..."
+```
+
+Or in your config:
+
+```yaml
+providers:
+  openai:
+    apiKey: ${OPENAI_API_KEY}
+    organization: ${OPENAI_ORG_ID}
 ```
 
 ## See Also

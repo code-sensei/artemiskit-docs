@@ -5,67 +5,109 @@ description: Security testing for LLM applications
 
 # artemiskit redteam
 
-Test your LLM for security vulnerabilities using automated red team attacks.
+Test your LLM for security vulnerabilities using automated red team attacks and prompt mutations.
 
 ## Synopsis
 
 ```bash
-artemiskit redteam [options]
-akit redteam [options]
+artemiskit redteam <scenario-file> [options]
+akit redteam <scenario-file> [options]
 ```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `scenario-file` | Path to the YAML scenario file to use as base |
 
 ## Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--target, -t` | Target system prompt | Required |
-| `--categories, -c` | Attack categories | all |
-| `--iterations, -i` | Attacks per category | 10 |
-| `--provider, -p` | LLM provider | From config |
-| `--model, -m` | Model name | Provider default |
-| `--save` | Save results | false |
-| `--output, -o` | Output directory | artemis-output |
+| Option | Short | Description | Default |
+|--------|-------|-------------|---------|
+| `--provider` | `-p` | LLM provider to use | From config/scenario |
+| `--model` | `-m` | Model name | From config/scenario |
+| `--mutations` | | Mutation types to apply | All types |
+| `--count` | `-c` | Number of mutated prompts per case | `5` |
+| `--save` | | Save results to storage | `false` |
+| `--output` | `-o` | Output directory for reports | `artemis-output` |
+| `--verbose` | `-v` | Verbose output | `false` |
+| `--config` | | Path to config file | `artemis.config.yaml` |
 
-## Attack Categories
+## Mutation Types
 
-| Category | Description |
+| Mutation | Description |
 |----------|-------------|
-| `injection` | Prompt injection attacks |
-| `jailbreak` | Jailbreak attempts |
-| `extraction` | Data extraction probes |
-| `hallucination` | Hallucination triggers |
-| `pii` | PII disclosure tests |
+| `typo` | Introduce typos to bypass filters |
+| `role-spoof` | Attempt role/identity spoofing |
+| `instruction-flip` | Invert or contradict instructions |
+| `cot-injection` | Chain-of-thought injection attacks |
 
 ## Examples
 
 ### Basic Red Team
 
+Run all mutation types on a scenario:
+
 ```bash
-akit redteam -t "You are a helpful assistant"
+akit redteam scenarios/chatbot.yaml
 ```
 
-### Specific Categories
+### Specific Mutations
+
+Test only specific attack vectors:
 
 ```bash
-akit redteam -t "You are a customer service bot" \
-  -c injection,jailbreak
+akit redteam scenarios/chatbot.yaml --mutations typo role-spoof
 ```
 
 ### Extended Testing
 
+Generate more mutations per test case:
+
 ```bash
-akit redteam -t "You are a coding assistant" \
-  -i 50 --save
+akit redteam scenarios/chatbot.yaml --count 10 --save
+```
+
+### With Different Model
+
+Test against a specific model:
+
+```bash
+akit redteam scenarios/chatbot.yaml -p anthropic -m claude-3-5-sonnet-20241022
 ```
 
 ## Understanding Results
 
-The red team report shows:
+The red team test analyzes:
 
-- **Vulnerability Score** — Overall security rating (0-100)
-- **Category Breakdown** — Results per attack type
-- **Successful Attacks** — Attacks that bypassed protections
-- **Recommendations** — Suggested mitigations
+- **Mutation Success Rate** — How many mutated prompts bypassed protections
+- **Vulnerability Categories** — Which attack types were most effective
+- **Original vs Mutated** — Comparison of responses
+
+## Example Output
+
+```
+Red Team Testing: chatbot
+Provider: openai (gpt-4o)
+Mutations: typo, role-spoof, instruction-flip, cot-injection
+Count per case: 5
+
+Testing case: system-prompt-test
+  Original: ✓ Protected
+  typo-1: ✓ Protected
+  typo-2: ✗ Bypassed
+  role-spoof-1: ✓ Protected
+  ...
+
+Summary:
+  Total mutations: 40
+  Blocked: 35 (87.5%)
+  Bypassed: 5 (12.5%)
+
+Vulnerabilities found:
+  - typo mutations: 2 bypasses
+  - cot-injection: 3 bypasses
+```
 
 ## Severity Levels
 
@@ -75,6 +117,14 @@ The red team report shows:
 | Medium | Significant issues that should be addressed |
 | Low | Minor concerns for hardening |
 
+## Use Cases
+
+- Test system prompt resilience
+- Validate content filtering
+- Identify jailbreak vulnerabilities
+- Audit before production deployment
+
 ## See Also
 
-- [Security Best Practices](/docs/cli/scenarios/expectations/)
+- [Scenario Format](/docs/cli/scenarios/format/)
+- [Run Command](/docs/cli/commands/run/)

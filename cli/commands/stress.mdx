@@ -5,47 +5,76 @@ description: Load and stress testing for LLM endpoints
 
 # artemiskit stress
 
-Test your LLM's performance under load.
+Test your LLM's performance under load using scenario-based stress testing.
 
 ## Synopsis
 
 ```bash
-artemiskit stress [options]
-akit stress [options]
+artemiskit stress <scenario-file> [options]
+akit stress <scenario-file> [options]
 ```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `scenario-file` | Path to the YAML scenario file |
 
 ## Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--prompt` | Test prompt | Required |
-| `--concurrency, -c` | Concurrent requests | 10 |
-| `--iterations, -n` | Total requests | 100 |
-| `--provider, -p` | LLM provider | From config |
-| `--model, -m` | Model name | Provider default |
-| `--save` | Save results | false |
-| `--output, -o` | Output directory | artemis-output |
+| Option | Short | Description | Default |
+|--------|-------|-------------|---------|
+| `--provider` | `-p` | LLM provider to use | From config/scenario |
+| `--model` | `-m` | Model name | From config/scenario |
+| `--concurrency` | `-c` | Number of concurrent requests | `10` |
+| `--requests` | `-n` | Total number of requests to make | Based on duration |
+| `--duration` | `-d` | Duration to run test (seconds) | `30` |
+| `--ramp-up` | | Ramp-up time (seconds) | `5` |
+| `--save` | | Save results to storage | `false` |
+| `--output` | `-o` | Output directory for reports | `artemis-output` |
+| `--verbose` | `-v` | Verbose output | `false` |
+| `--config` | | Path to config file | `artemis.config.yaml` |
 
 ## Examples
 
 ### Basic Stress Test
 
+Run a 30-second stress test with default concurrency:
+
 ```bash
-akit stress --prompt "Hello, how are you?"
+akit stress scenarios/chatbot.yaml
 ```
 
 ### High Concurrency
 
+Test with 50 concurrent requests:
+
 ```bash
-akit stress --prompt "Summarize this text" \
-  -c 50 -n 500
+akit stress scenarios/chatbot.yaml -c 50
 ```
 
-### With Report
+### Fixed Request Count
+
+Run exactly 500 requests:
 
 ```bash
-akit stress --prompt "Translate to Spanish" \
-  -c 25 -n 250 --save
+akit stress scenarios/chatbot.yaml -n 500 -c 25
+```
+
+### Extended Duration
+
+Run for 5 minutes:
+
+```bash
+akit stress scenarios/chatbot.yaml -d 300 --save
+```
+
+### Custom Ramp-Up
+
+Gradually increase load over 30 seconds:
+
+```bash
+akit stress scenarios/chatbot.yaml -c 100 --ramp-up 30
 ```
 
 ## Metrics
@@ -59,33 +88,51 @@ The stress test measures:
 | **P50 Latency** | 50th percentile (median) |
 | **P95 Latency** | 95th percentile |
 | **P99 Latency** | 99th percentile |
+| **Min/Max Latency** | Latency range |
 | **Success Rate** | Percentage of successful requests |
 | **Error Rate** | Failures and rate limiting |
 
 ## Example Output
 
 ```
-Stress Test Results
-==================
-Total Requests: 500
-Concurrency: 50
-Duration: 45.2s
+Stress Test: chatbot
+Provider: openai (gpt-4o)
+Duration: 30s | Concurrency: 50 | Ramp-up: 5s
 
-Throughput: 11.1 req/s
-Success Rate: 98.4%
+Progress: [████████████████████] 100%
+
+Results
+=======
+Total Requests: 523
+Duration: 30.2s
+
+Throughput: 17.3 req/s
+Success Rate: 98.1%
 
 Latency Distribution:
-  Avg: 245ms
-  P50: 198ms
-  P95: 512ms
-  P99: 892ms
-  Min: 89ms
+  Avg:  289ms
+  P50:  245ms
+  P95:  512ms
+  P99:  892ms
+  Min:   89ms
   Max: 1,245ms
 
 Errors:
-  Rate Limited: 8 (1.6%)
+  Rate Limited: 10 (1.9%)
 ```
+
+## Rate Limiting
+
+When testing, be aware of provider rate limits:
+
+- OpenAI: Varies by tier
+- Anthropic: Varies by tier
+- Azure: Depends on deployment
+
+Use `--concurrency` and `--ramp-up` to avoid hitting limits too quickly.
 
 ## See Also
 
-- [Performance Best Practices](/docs/cli/ci-cd/)
+- [Scenario Format](/docs/cli/scenarios/format/)
+- [Run Command](/docs/cli/commands/run/)
+- [CI/CD Integration](/docs/cli/ci-cd/)

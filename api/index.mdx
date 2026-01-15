@@ -22,19 +22,22 @@ The ArtemisKit Core library allows you to embed LLM evaluation directly in your 
 ## Preview
 
 ```typescript
-import { Evaluator, OpenAIProvider } from '@artemiskit/core';
+import { Evaluator, createProvider } from '@artemiskit/core';
 
-const evaluator = new Evaluator({
-  provider: new OpenAIProvider({
-    apiKey: process.env.OPENAI_API_KEY,
-    model: 'gpt-4',
-  }),
+const provider = createProvider('openai', {
+  apiKey: process.env.OPENAI_API_KEY,
+  model: 'gpt-4o',
 });
 
-const result = await evaluator.run({
+const evaluator = new Evaluator({ provider });
+
+const result = await evaluator.runCase({
+  id: 'math-test',
   prompt: 'What is 2+2?',
-  expect: {
-    contains: ['4'],
+  expected: {
+    type: 'contains',
+    values: ['4'],
+    mode: 'any',
   },
 });
 
@@ -48,14 +51,16 @@ import { createMatcher } from '@artemiskit/jest';
 
 const evaluateLLM = createMatcher({
   provider: 'openai',
-  model: 'gpt-4',
+  model: 'gpt-4o',
 });
 
 describe('Chatbot', () => {
   it('answers math questions', async () => {
     const response = await chatbot.ask('What is 2+2?');
     await expect(response).toPassEvaluation({
-      contains: ['4'],
+      type: 'contains',
+      values: ['4'],
+      mode: 'any',
     });
   });
 });

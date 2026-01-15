@@ -1,63 +1,88 @@
 ---
-title: OpenAI
-description: Configure ArtemisKit with OpenAI
+title: OpenRouter
+description: Configure ArtemisKit with OpenRouter
 ---
 
-# OpenAI Provider
+# OpenRouter Provider
 
-Use ArtemisKit with OpenAI's GPT models.
+Use ArtemisKit with [OpenRouter](https://openrouter.ai/) to access multiple LLM providers through a single API.
 
 ## Setup
 
 ### 1. Get API Key
 
-Get your API key from the [OpenAI Dashboard](https://platform.openai.com/api-keys).
+Get your API key from [OpenRouter](https://openrouter.ai/keys).
 
 ### 2. Set Environment Variable
 
 ```bash
-export OPENAI_API_KEY="sk-..."
+export OPENROUTER_API_KEY="sk-or-..."
 ```
 
 ### 3. Configure Scenario
 
 ```yaml
-config:
-  provider: openai
-  model: gpt-4
+name: my-test
+provider: openrouter
+model: openai/gpt-4o
+
+cases:
+  - id: example
+    prompt: "Hello"
+    expected:
+      type: contains
+      values: ["hello"]
+      mode: any
 ```
 
-## Available Models
+## Model Format
+
+OpenRouter uses the format `provider/model`:
+
+```
+openai/gpt-4o
+anthropic/claude-3-5-sonnet
+google/gemini-pro
+meta-llama/llama-3-70b-instruct
+```
+
+## Popular Models
 
 | Model | Description |
 |-------|-------------|
-| `gpt-4` | Most capable GPT-4 model |
-| `gpt-4-turbo` | GPT-4 Turbo with 128k context |
-| `gpt-4o` | Optimized GPT-4 |
-| `gpt-3.5-turbo` | Fast and cost-effective |
+| `openai/gpt-4o` | OpenAI GPT-4o |
+| `anthropic/claude-3-5-sonnet` | Anthropic Claude 3.5 Sonnet |
+| `google/gemini-pro` | Google Gemini Pro |
+| `meta-llama/llama-3-70b-instruct` | Meta Llama 3 70B |
+| `mistralai/mistral-large` | Mistral Large |
 
-## Configuration Options
+See the full [OpenRouter model list](https://openrouter.ai/models) for all available models.
+
+## Config File
+
+Configure OpenRouter in your `artemis.config.yaml`:
 
 ```yaml
-config:
-  provider: openai
-  model: gpt-4
-  temperature: 0        # 0-2, lower = more deterministic
-  max_tokens: 1000      # Maximum response length
-  top_p: 1              # Nucleus sampling
-  frequency_penalty: 0  # Reduce repetition
-  presence_penalty: 0   # Encourage new topics
+provider: openrouter
+model: openai/gpt-4o
+
+providers:
+  openrouter:
+    apiKey: ${OPENROUTER_API_KEY}
+    timeout: 60000
+    maxRetries: 2
 ```
 
-## Organization ID
+## Use Cases
 
-If you belong to multiple organizations:
+OpenRouter is ideal for:
 
-```bash
-export OPENAI_ORG_ID="org-..."
-```
+- **Model comparison** — Test the same scenario across different providers
+- **Cost optimization** — Route to cheaper models for specific tasks
+- **Fallback providers** — Access backup models if primary is unavailable
 
 ## See Also
 
-- [Azure OpenAI](/docs/cli/providers/azure/)
+- [OpenAI](/docs/cli/providers/openai/)
+- [Anthropic](/docs/cli/providers/anthropic/)
 - [Scenario Format](/docs/cli/scenarios/format/)

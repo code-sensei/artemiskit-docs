@@ -1,46 +1,72 @@
 ---
 title: artemiskit report
-description: Regenerate reports from saved data
+description: Generate reports from stored runs
 ---
 
 # artemiskit report
 
-Regenerate HTML reports from saved run manifests.
+Generate HTML or JSON reports from saved run data.
 
 ## Synopsis
 
 ```bash
-artemiskit report --input <manifest-file> [options]
-akit report --input <manifest-file> [options]
+artemiskit report <run-id> [options]
+akit report <run-id> [options]
 ```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `run-id` | The run ID to generate a report for |
 
 ## Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--input, -i` | Path to run_manifest.json | Required |
-| `--output, -o` | Output directory | Same as input |
-| `--format` | Report format (html, json) | html |
+| Option | Short | Description | Default |
+|--------|-------|-------------|---------|
+| `--format` | `-f` | Output format: `html`, `json`, or `both` | `html` |
+| `--output` | `-o` | Output directory | `artemis-output` |
+| `--config` | | Path to config file | `artemis.config.yaml` |
 
 ## Examples
 
-### Regenerate HTML Report
+### Generate HTML Report
 
 ```bash
-akit report -i artemis-output/run_manifest.json
+akit report run_abc123
+```
+
+### Generate JSON Report
+
+```bash
+akit report run_abc123 -f json
+```
+
+### Both Formats
+
+```bash
+akit report run_abc123 -f both -o ./reports
 ```
 
 ### Custom Output Location
 
 ```bash
-akit report -i ./results/run_manifest.json -o ./reports
+akit report run_abc123 -o ./reports/latest
 ```
+
+## Output Files
+
+Depending on format:
+
+- **HTML**: `report.html` — Interactive visual report
+- **JSON**: `report.json` — Machine-readable data
 
 ## Use Cases
 
-- Regenerate reports after updating report templates
+- Regenerate reports after updating templates
 - Create reports in different formats
 - Share reports without re-running evaluations
+- Generate reports for historical runs
 
 ## See Also
 

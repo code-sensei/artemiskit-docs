@@ -20,8 +20,10 @@ npm install -g @artemiskit/cli
 | `artemiskit run` | Run scenario-based evaluations |
 | `artemiskit redteam` | Security red team testing |
 | `artemiskit stress` | Load and stress testing |
-| `artemiskit report` | Regenerate reports from saved data |
-| `artemiskit compare` | Compare two runs |
+| `artemiskit compare` | Compare two evaluation runs |
+| `artemiskit report` | Generate reports from saved runs |
+| `artemiskit history` | View run history |
+| `artemiskit init` | Initialize configuration |
 
 You can use `akit` as a shorter alias for `artemiskit`.
 
@@ -29,7 +31,7 @@ You can use `akit` as a shorter alias for `artemiskit`.
 
 ```bash
 # Set your API key
-export OPENAI_API_KEY="your-key"
+export OPENAI_API_KEY="sk-..."
 
 # Run a scenario
 akit run scenarios/my-test.yaml
@@ -38,8 +40,27 @@ akit run scenarios/my-test.yaml
 akit run scenarios/my-test.yaml --save
 ```
 
+## Configuration
+
+Create `artemis.config.yaml` for default settings:
+
+```yaml
+provider: openai
+model: gpt-4o
+
+providers:
+  openai:
+    apiKey: ${OPENAI_API_KEY}
+    timeout: 60000
+
+output:
+  format: json
+  dir: ./artemis-output
+```
+
 ## Next Steps
 
 - [Installation Guide](/docs/cli/installation/)
 - [Getting Started](/docs/cli/getting-started/)
+- [Scenario Format](/docs/cli/scenarios/format/)
 - [Command Reference](/docs/cli/commands/run/)
