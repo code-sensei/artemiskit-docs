@@ -1,0 +1,242 @@
+---
+title: Supabase Storage
+description: Store ArtemisKit evaluation results in Supabase for team collaboration
+---
+
+# Supabase Storage
+
+Cloud-based storage using PostgreSQL for metadata and Supabase Storage for manifest files. Recommended for team collaboration, CI/CD pipelines, and production usage.
+
+## Features
+
+- **Cloud persistence** - Access run history from any machine
+- **Full SQL queries** - Rich filtering and aggregation
+- **Team collaboration** - Share results across team members
+- **Built-in metrics** - Automatic aggregation and trending
+- **Row Level Security** - Ready for multi-tenant setups
+
+## Setup
+
+### 1. Create Supabase Project
+
+1. Go to [supabase.com](https://supabase.com) and create a new project
+2. Note your project URL and anon key from Settings > API
+
+### 2. Run Database Migrations
+
+Apply the ArtemisKit schema using Supabase CLI:
+
+```bash
+supabase link --project-ref your-project-ref
+supabase db push
+```
+
+Or run manually in the SQL Editor:
+
+```sql
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Runs table
+CREATE TABLE runs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  run_id TEXT UNIQUE NOT NULL,
+  project TEXT NOT NULL DEFAULT 'default',
+  scenario TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  model TEXT NOT NULL,
+  success_rate DECIMAL(5, 4) NOT NULL,
+  total_cases INTEGER NOT NULL,
+  passed_cases INTEGER NOT NULL,
+  failed_cases INTEGER NOT NULL,
+  median_latency_ms INTEGER,
+  p95_latency_ms INTEGER,
+  total_tokens INTEGER,
+  git_commit TEXT,
+  git_branch TEXT,
+  git_dirty BOOLEAN DEFAULT false,
+  run_by TEXT,
+  run_reason TEXT,
+  started_at TIMESTAMPTZ NOT NULL,
+  ended_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  manifest_path TEXT NOT NULL
+);
+
+-- Indexes
+CREATE INDEX idx_runs_project ON runs(project);
+CREATE INDEX idx_runs_scenario ON runs(scenario);
+CREATE INDEX idx_runs_started_at ON runs(started_at DESC);
+
+-- Enable RLS
+ALTER TABLE runs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to runs" ON runs FOR ALL USING (true);
+```
+
+### 3. Create Storage Bucket
+
+In Supabase Dashboard > Storage:
+
+1. Create bucket named `artemis-runs`
+2. Set to private (recommended)
+
+### 4. Configure ArtemisKit
+
+**Environment variables:**
+
+```bash
+export SUPABASE_URL=https://your-project.supabase.co
+export SUPABASE_ANON_KEY=your-anon-key
+```
+
+**Config file:**
+
+```yaml
+# artemis.config.yaml
+storage:
+  type: supabase
+  url: ${SUPABASE_URL}
+  anonKey: ${SUPABASE_ANON_KEY}
+  bucket: artemis-runs
+```
+
+## Usage
+
+Once configured, all CLI commands automatically use Supabase:
+
+```bash
+# Run tests - results saved to Supabase
+artemiskit run scenarios/my-test.yaml
+
+# View history - fetched from Supabase
+artemiskit history --limit 20
+
+# Compare runs
+artemiskit compare ar-20260115-abc123 ar-20260116-def456
+```
+
+## Database Schema
+
+The adapter currently uses the `runs` table. Additional tables are included in the migration for future features:
+
+| Table | Status | Description |
+|-------|--------|-------------|
+| `runs` | Active | Run metadata (project, scenario, metrics, git info) |
+| `case_results` | Reserved | Individual test case results (future) |
+| `baselines` | Reserved | Baseline runs for regression comparison (future) |
+| `metrics_history` | Reserved | Aggregated daily metrics (future) |
+
+## Programmatic Usage
+
+```typescript
+import { SupabaseStorageAdapter } from '@artemiskit/core';
+
+const storage = new SupabaseStorageAdapter({
+  url: process.env.SUPABASE_URL!,
+  anonKey: process.env.SUPABASE_ANON_KEY!,
+  bucket: 'artemis-runs',
+});
+
+// Save a manifest
+const path = await storage.save(manifest);
+
+// Load a manifest
+const loaded = await storage.load('ar-20260115-abc123');
+
+// List runs with filtering
+const runs = await storage.list({
+  project: 'my-project',
+  scenario: 'auth-tests',
+  limit: 10,
+});
+
+// Compare runs
+const comparison = await storage.compare(
+  'ar-20260115-abc123',
+  'ar-20260116-def456'
+);
+
+// Delete a run
+await storage.delete('ar-20260115-abc123');
+```
+
+## Custom Queries
+
+Access Supabase directly for advanced queries:
+
+```typescript
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_ANON_KEY!
+);
+
+// Get runs with low success rate
+const { data } = await supabase
+  .from('runs')
+  .select('*')
+  .lt('success_rate', 0.9)
+  .order('started_at', { ascending: false });
+```
+
+## CI/CD Integration
+
+### GitHub Actions
+
+```yaml
+name: LLM Evaluation
+
+on: [push, pull_request]
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+      - run: bun install
+      
+      - name: Run evaluations
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: artemiskit run scenarios/ --project ${{ github.repository }}
+```
+
+## Troubleshooting
+
+### Connection Error
+
+```
+Error: Failed to connect to Supabase
+```
+
+Verify `SUPABASE_URL` and `SUPABASE_ANON_KEY` are correct.
+
+### Permission Denied
+
+```
+Error: new row violates row-level security policy
+```
+
+Check RLS policies. For development:
+
+```sql
+CREATE POLICY "Allow all" ON runs FOR ALL USING (true);
+```
+
+### Table Not Found
+
+```
+Error: relation "runs" does not exist
+```
+
+Run the database migrations to create required tables.
+
+## See Also
+
+- [Storage Overview](/docs/cli/storage/)
+- [Local Storage](/docs/cli/storage/local/)
+- [CI/CD Integration](/docs/cli/ci-cd/)

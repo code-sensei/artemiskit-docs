@@ -33,11 +33,11 @@ You can use `akit` as a shorter alias for `artemiskit`.
 # Set your API key
 export OPENAI_API_KEY="sk-..."
 
-# Run a scenario
+# Run a scenario (results are saved by default)
 akit run scenarios/my-test.yaml
 
-# Save results
-akit run scenarios/my-test.yaml --save
+# Run without saving results
+akit run scenarios/my-test.yaml --no-save
 ```
 
 ## Configuration
@@ -64,3 +64,5 @@ output:
 - [Getting Started](/docs/cli/getting-started/)
 - [Scenario Format](/docs/cli/scenarios/format/)
 - [Command Reference](/docs/cli/commands/run/)
+- [Storage Backends](/docs/cli/storage/)
+- [Providers](/docs/cli/providers/)

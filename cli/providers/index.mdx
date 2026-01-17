@@ -1,0 +1,95 @@
+---
+title: Providers
+description: LLM provider adapters for ArtemisKit
+---
+
+# Provider Adapters
+
+ArtemisKit supports multiple LLM providers through adapters. Choose the one that fits your needs.
+
+## Available Providers
+
+| Provider | Package | Best For |
+|----------|---------|----------|
+| [OpenAI](/docs/cli/providers/openai/) | `@artemiskit/adapter-openai` | GPT models, production |
+| [Azure OpenAI](/docs/cli/providers/azure/) | `@artemiskit/adapter-openai` | Enterprise, compliance |
+| [Anthropic](/docs/cli/providers/anthropic/) | `@artemiskit/adapter-anthropic` | Claude models |
+| [Vercel AI](/docs/cli/providers/vercel-ai/) | `@artemiskit/adapter-vercel-ai` | Multi-provider apps |
+
+## Quick Setup
+
+### OpenAI
+
+```bash
+export OPENAI_API_KEY="sk-..."
+```
+
+```yaml
+provider: openai
+model: gpt-5
+```
+
+### Anthropic
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+```yaml
+provider: anthropic
+model: claude-sonnet-4-5-20241022
+```
+
+### Azure OpenAI
+
+```bash
+export AZURE_OPENAI_API_KEY="..."
+export AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com"
+```
+
+```yaml
+provider: azure-openai
+model: gpt-5
+
+providers:
+  azure-openai:
+    apiKey: ${AZURE_OPENAI_API_KEY}
+    resourceName: ${AZURE_OPENAI_RESOURCE_NAME}
+    deploymentName: ${AZURE_OPENAI_DEPLOYMENT_NAME}
+```
+
+### Vercel AI SDK
+
+```bash
+export OPENAI_API_KEY="sk-..."  # or other provider keys
+```
+
+```yaml
+provider: vercel-ai
+model: openai:gpt-4o  # format: provider:model
+```
+
+## Feature Comparison
+
+| Feature | OpenAI | Azure | Anthropic | Vercel AI |
+|---------|--------|-------|-----------|-----------|
+| Streaming | Yes | Yes | Yes | Yes |
+| Function Calling | Yes | Yes | Yes | Varies |
+| Vision | Yes | Yes | Yes | Varies |
+| JSON Mode | Yes | Yes | No | Varies |
+| Max Context | 128K | 128K | 200K | Varies |
+
+## Configuration Precedence
+
+Settings are applied in this order (highest to lowest priority):
+
+1. **CLI flags** - `--provider`, `--model`
+2. **Scenario file** - `provider:`, `model:`
+3. **Config file** - `artemis.config.yaml`
+4. **Environment variables**
+5. **Defaults**
+
+## See Also
+
+- [Scenario Format](/docs/cli/scenarios/format/)
+- [Storage Backends](/docs/cli/storage/)

@@ -1,0 +1,145 @@
+---
+title: Local Storage
+description: Store ArtemisKit evaluation results on the local filesystem
+---
+
+# Local Storage
+
+The default storage backend that persists evaluation results to the local filesystem.
+
+## Configuration
+
+Local storage works out of the box with no configuration required.
+
+### Default Location
+
+Results are stored in `./artemis-runs/` relative to your project root:
+
+```
+artemis-runs/
+└── default/
+    ├── ar-20260115-abc123.json
+    ├── ar-20260115-def456.json
+    └── ...
+```
+
+Results are organized by project name (defaults to `default`).
+
+### Custom Location
+
+Configure a custom path in your config file:
+
+```yaml
+# artemis.config.yaml
+storage:
+  type: local
+  basePath: ./my-eval-results
+```
+
+Or via environment variable:
+
+```bash
+export ARTEMIS_STORAGE_PATH=./my-eval-results
+```
+
+## File Structure
+
+### Run Manifests
+
+Each run creates a JSON file containing the complete evaluation results:
+
+```
+artemis-runs/<project>/<run-id>.json
+```
+
+The manifest includes:
+- Run metadata (ID, timestamps, git info)
+- Configuration used (provider, model, scenario)
+- Aggregate metrics (success rate, latency, tokens)
+- Individual case results
+
+## CLI Commands
+
+### View Run History
+
+```bash
+artemiskit history --limit 10
+```
+
+Output:
+```
+Run ID                  Scenario        Success Rate   Date
+ar-20260115-abc123     auth-tests      95.0%          1/15/2026, 10:30:00 AM
+ar-20260114-xyz789     auth-tests      92.0%          1/14/2026, 3:45:00 PM
+```
+
+Filter by project or scenario:
+
+```bash
+artemiskit history --project my-project --scenario auth-tests
+```
+
+### Compare Two Runs
+
+```bash
+artemiskit compare ar-20260115-abc123 ar-20260114-xyz789
+```
+
+### Generate Report from a Run
+
+```bash
+artemiskit report ar-20260115-abc123
+```
+
+## Programmatic Usage
+
+```typescript
+import { LocalStorageAdapter } from '@artemiskit/core';
+
+const storage = new LocalStorageAdapter('./artemis-runs');
+
+// Save a manifest
+await storage.save(manifest);
+
+// Load a manifest
+const loaded = await storage.load('ar-20260115-abc123');
+
+// List runs with filtering
+const runs = await storage.list({
+  project: 'my-project',
+  scenario: 'my-scenario',
+  limit: 10,
+});
+
+// Compare runs
+const diff = await storage.compare(
+  'ar-20260115-abc123',
+  'ar-20260114-xyz789'
+);
+
+// Delete a run
+await storage.delete('ar-20260115-abc123');
+```
+
+## Git Integration
+
+Add to `.gitignore` to exclude run results:
+
+```gitignore
+# ArtemisKit results
+artemis-runs/
+```
+
+## Limitations
+
+- Single machine only - results not shared across team
+- No querying beyond basic filtering
+- Manual backup required
+- No built-in trending or analytics
+
+For team collaboration and CI/CD, consider [Supabase Storage](/docs/cli/storage/supabase/).
+
+## See Also
+
+- [Storage Overview](/docs/cli/storage/)
+- [Supabase Storage](/docs/cli/storage/supabase/)

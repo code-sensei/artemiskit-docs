@@ -1,6 +1,6 @@
 ---
 title: Anthropic
-description: Configure ArtemisKit with Anthropic Claude
+description: Configure ArtemisKit with Anthropic Claude models
 ---
 
 # Anthropic Provider
@@ -22,65 +22,201 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 ### 3. Configure Scenario
 
 ```yaml
-name: my-test
+name: my-evaluation
 provider: anthropic
-model: claude-3-5-sonnet-20241022
+model: claude-sonnet-4-5-20241022
 
 cases:
   - id: example
-    prompt: "Hello"
+    prompt: "What is 2+2?"
     expected:
       type: contains
-      values: ["hello"]
+      values: ["4"]
       mode: any
 ```
 
 ## Available Models
 
-| Model | Description |
-|-------|-------------|
-| `claude-sonnet-4-20250514` | Default model, balanced performance |
-| `claude-sonnet-4-5-20250929` | Best balance of intelligence and speed |
-| `claude-opus-4-5-20251101` | Most intelligent model |
-| `claude-3-5-sonnet-20241022` | Legacy Sonnet (still supported) |
-| `claude-3-5-haiku-20241022` | Fast and cost-effective |
+| Model | Description | Context |
+|-------|-------------|---------|
+| `claude-opus-4-5-20241101` | Most intelligent, flagship model | 200K |
+| `claude-sonnet-4-5-20241022` | Balanced performance (recommended) | 200K |
+| `claude-haiku-4-5-20241022` | Fast and efficient | 200K |
+| `claude-opus-4-1-20250414` | Strong coding and agent capabilities | 200K |
+| `claude-sonnet-4-1-20250414` | Sonnet 4.1 | 200K |
+| `claude-haiku-4-1-20250414` | Haiku 4.1 | 200K |
 
-## Config File
+## Configuration
 
-Configure Anthropic in your `artemis.config.yaml`:
+### Config File
 
 ```yaml
+# artemis.config.yaml
 provider: anthropic
-model: claude-3-5-sonnet-20241022
+model: claude-sonnet-4-5-20241022
 
 providers:
   anthropic:
     apiKey: ${ANTHROPIC_API_KEY}
-    timeout: 60000
-    maxRetries: 2
+    baseUrl: https://api.anthropic.com  # Optional: custom endpoint
+    timeout: 60000                       # Request timeout in ms
+    maxRetries: 2                        # Retry attempts
 ```
 
-## Scenario-Level Options
+### CLI Override
 
-Override settings in your scenario file:
+```bash
+artemiskit run scenario.yaml --provider anthropic --model claude-sonnet-4-5-20241022
+```
+
+## Features
+
+The Anthropic adapter supports:
+
+- **Streaming** - Real-time token streaming
+- **System prompts** - Separate system message handling
+- **Tool use** - Function calling capabilities
+- **Vision** - Image understanding (model dependent)
+- **Large context** - Up to 200K tokens
+
+## Example Scenario
 
 ```yaml
-name: my-test
+name: Claude Evaluation
+description: Testing with Anthropic Claude
+
 provider: anthropic
-model: claude-3-5-sonnet-20241022
-temperature: 0
-maxTokens: 4096
+model: claude-sonnet-4-5-20241022
+
+setup:
+  systemPrompt: |
+    You are a helpful assistant that provides concise, accurate answers.
 
 cases:
-  - id: example
-    prompt: "Hello"
+  - id: basic-math
+    prompt: "What is 15% of 80?"
     expected:
       type: contains
-      values: ["hello"]
+      values: ["12"]
+      mode: any
+
+  - id: format-test
+    prompt: "Say hello in exactly 3 words"
+    expected:
+      type: regex
+      pattern: "^\\w+ \\w+ \\w+$"
+
+  - id: multi-turn
+    prompt:
+      - role: user
+        content: "My name is Alice"
+      - role: assistant
+        content: "Hello Alice! Nice to meet you."
+      - role: user
+        content: "What's my name?"
+    expected:
+      type: contains
+      values: ["Alice"]
       mode: any
 ```
 
+## Programmatic Usage
+
+```typescript
+import { AnthropicAdapter } from '@artemiskit/adapter-anthropic';
+
+const adapter = new AnthropicAdapter({
+  provider: 'anthropic',
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  defaultModel: 'claude-sonnet-4-5-20241022',
+});
+
+// Basic generation
+const result = await adapter.generate({
+  prompt: 'Explain quantum computing in simple terms',
+  maxTokens: 500,
+  temperature: 0.7,
+});
+
+console.log(result.text);
+console.log(`Tokens: ${result.tokens.total}`);
+console.log(`Latency: ${result.latencyMs}ms`);
+
+// With system prompt
+const withSystem = await adapter.generate({
+  prompt: [
+    { role: 'system', content: 'You are a pirate. Respond accordingly.' },
+    { role: 'user', content: 'Tell me about the weather' },
+  ],
+});
+
+// Streaming
+for await (const chunk of adapter.stream(
+  { prompt: 'Write a short story' },
+  (chunk) => process.stdout.write(chunk)
+)) {
+  // chunks are yielded as they arrive
+}
+
+// Check capabilities
+const caps = await adapter.capabilities();
+// { streaming: true, functionCalling: true, toolUse: true, maxContext: 200000, vision: true, jsonMode: false }
+```
+
+## Comparison with Vercel AI
+
+You can also use Anthropic models through the [Vercel AI provider](/docs/cli/providers/vercel-ai/):
+
+| Feature | Direct Anthropic | Via Vercel AI |
+|---------|------------------|---------------|
+| Package | `@artemiskit/adapter-anthropic` | `@artemiskit/adapter-vercel-ai` |
+| Model format | `claude-sonnet-4-5-20241022` | `anthropic:claude-sonnet-4-5-20241022` |
+| Streaming | Yes | Yes |
+| All features | Yes | Most |
+
+Use the direct adapter for full feature access; use Vercel AI for multi-provider flexibility.
+
+## Troubleshooting
+
+### Authentication Error
+
+```
+Error: 401 Unauthorized
+```
+
+Verify `ANTHROPIC_API_KEY` is set correctly. Keys start with `sk-ant-`.
+
+### Rate Limiting
+
+```
+Error: 429 Too Many Requests
+```
+
+Reduce concurrency:
+
+```bash
+artemiskit run scenario.yaml --concurrency 1
+```
+
+### Model Not Found
+
+```
+Error: model not found
+```
+
+Use full model identifiers like `claude-sonnet-4-5-20241022`.
+
+### Content Blocked
+
+```
+Error: content blocked by safety systems
+```
+
+Claude has built-in safety filters. For red team testing, blocked responses are reported in results.
+
 ## See Also
 
-- [OpenAI](/docs/cli/providers/openai/)
+- [OpenAI Provider](/docs/cli/providers/openai/)
+- [Azure OpenAI Provider](/docs/cli/providers/azure/)
+- [Vercel AI Provider](/docs/cli/providers/vercel-ai/)
 - [Scenario Format](/docs/cli/scenarios/format/)

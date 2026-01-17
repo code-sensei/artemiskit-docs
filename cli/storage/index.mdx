@@ -1,0 +1,102 @@
+---
+title: Storage
+description: Configure storage backends for ArtemisKit evaluation results
+---
+
+# Storage Backends
+
+ArtemisKit supports multiple storage backends for persisting evaluation results. Choose the one that best fits your workflow.
+
+## Available Backends
+
+| Backend | Best For | Persistence |
+|---------|----------|-------------|
+| [Local](/docs/cli/storage/local/) | Development, single-user | Filesystem |
+| [Supabase](/docs/cli/storage/supabase/) | Teams, CI/CD, cloud | PostgreSQL + Storage |
+
+## Configuration
+
+Set the storage backend in your config file:
+
+```yaml
+# artemis.config.yaml
+storage:
+  type: local  # or "supabase"
+  basePath: ./artemis-runs
+```
+
+Or use environment variables:
+
+```bash
+export ARTEMIS_STORAGE_PATH=./artemis-runs
+```
+
+## Storage Features
+
+All storage backends support:
+
+- **Save** - Store run manifests with full results
+- **Load** - Retrieve a specific run by ID
+- **List** - Query runs with filtering and pagination
+- **Delete** - Remove runs
+- **Compare** - Diff two runs for regression detection
+
+## Run Manifest
+
+Each evaluation run produces a manifest containing:
+
+```typescript
+interface RunManifest {
+  run_id: string;           // Unique identifier (e.g., "ar-20260115-abc123")
+  project: string;          // Project name
+  config: {
+    scenario: string;       // Scenario filename
+    provider: string;       // LLM provider used
+    model: string;          // Model used
+  };
+  metrics: {
+    success_rate: number;   // Pass rate (0-1)
+    total_cases: number;
+    passed_cases: number;
+    failed_cases: number;
+    median_latency_ms: number;
+    p95_latency_ms: number;
+    total_tokens: number;
+  };
+  git: {
+    commit: string;
+    branch: string;
+    dirty: boolean;
+  };
+  provenance: {
+    run_by: string;
+    run_reason: string;
+  };
+  start_time: string;
+  end_time: string;
+  results: CaseResult[];
+}
+```
+
+## Choosing a Backend
+
+### Use Local Storage When:
+
+- Developing and testing scenarios
+- Running evaluations on a single machine
+- You don't need to share results across team members
+- Quick setup with zero configuration
+
+### Use Supabase Storage When:
+
+- Running evaluations in CI/CD pipelines
+- Collaborating with a team
+- Need historical trending and analytics
+- Want SQL-queryable results
+- Building dashboards or integrations
+
+## See Also
+
+- [Local Storage](/docs/cli/storage/local/)
+- [Supabase Storage](/docs/cli/storage/supabase/)
+- [CI/CD Integration](/docs/cli/ci-cd/)
