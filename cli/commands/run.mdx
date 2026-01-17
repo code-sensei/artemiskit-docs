@@ -29,11 +29,19 @@ akit run <scenario-file> [options]
 | `--output` | `-o` | Output directory for results | `artemis-output` |
 | `--verbose` | `-v` | Verbose output | `false` |
 | `--tags` | `-t` | Filter test cases by tags | All cases |
-| `--save` | | Save results to storage | `true` |
+| `--save` | | Save results to storage (enabled by default) | `true` |
 | `--concurrency` | `-c` | Number of concurrent test cases | `1` |
 | `--timeout` | | Timeout per test case (ms) | From config |
 | `--retries` | | Number of retries per test case | From config |
 | `--config` | | Path to config file | `artemis.config.yaml` |
+| `--redact` | | Enable PII/sensitive data redaction | `false` |
+| `--redact-patterns` | | Custom redaction patterns (regex or built-in) | Default patterns |
+
+### Redaction Patterns
+
+Built-in patterns: `email`, `phone`, `credit_card`, `ssn`, `api_key`
+
+You can also use custom regex patterns.
 
 ## Examples
 
@@ -79,6 +87,20 @@ akit run scenarios/qa-test.yaml -v
 akit run scenarios/qa-test.yaml --config ./custom-config.yaml
 ```
 
+### With Redaction
+
+Redact PII from results using built-in patterns:
+
+```bash
+akit run scenarios/qa-test.yaml --redact
+```
+
+With specific patterns:
+
+```bash
+akit run scenarios/qa-test.yaml --redact --redact-patterns email phone api_key
+```
+
 ## Exit Codes
 
 | Code | Meaning |
@@ -104,7 +126,7 @@ The manifest includes:
 
 ```
 Running scenario: qa-test
-Provider: openai (gpt-5.1)
+Provider: openai (gpt-5)
 
   ✓ greeting-test (234ms)
   ✓ math-test (189ms)

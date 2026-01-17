@@ -34,6 +34,12 @@ akit stress <scenario-file> [options]
 | `--output` | `-o` | Output directory for reports | `artemis-output` |
 | `--verbose` | `-v` | Verbose output | `false` |
 | `--config` | | Path to config file | `artemis.config.yaml` |
+| `--redact` | | Enable PII/sensitive data redaction | `false` |
+| `--redact-patterns` | | Custom redaction patterns (regex or built-in) | Default patterns |
+
+### Redaction Patterns
+
+Built-in patterns: `email`, `phone`, `credit_card`, `ssn`, `api_key`
 
 ## Examples
 
@@ -86,6 +92,7 @@ The stress test measures:
 | **Throughput** | Requests per second |
 | **Avg Latency** | Average response time |
 | **P50 Latency** | 50th percentile (median) |
+| **P90 Latency** | 90th percentile |
 | **P95 Latency** | 95th percentile |
 | **P99 Latency** | 99th percentile |
 | **Min/Max Latency** | Latency range |
@@ -96,7 +103,7 @@ The stress test measures:
 
 ```
 Stress Test: chatbot
-Provider: openai (gpt-5.1)
+Provider: openai (gpt-5)
 Duration: 30s | Concurrency: 50 | Ramp-up: 5s
 
 Progress: [████████████████████] 100%
@@ -112,6 +119,7 @@ Success Rate: 98.1%
 Latency Distribution:
   Avg:  289ms
   P50:  245ms
+  P90:  478ms
   P95:  512ms
   P99:  892ms
   Min:   89ms

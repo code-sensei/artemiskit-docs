@@ -32,6 +32,12 @@ akit redteam <scenario-file> [options]
 | `--output` | `-o` | Output directory for reports | `artemis-output` |
 | `--verbose` | `-v` | Verbose output | `false` |
 | `--config` | | Path to config file | `artemis.config.yaml` |
+| `--redact` | | Enable PII/sensitive data redaction | `false` |
+| `--redact-patterns` | | Custom redaction patterns (regex or built-in) | Default patterns |
+
+### Redaction Patterns
+
+Built-in patterns: `email`, `phone`, `credit_card`, `ssn`, `api_key`
 
 ## Mutation Types
 
@@ -88,7 +94,7 @@ The red team test analyzes:
 
 ```
 Red Team Testing: chatbot
-Provider: openai (gpt-5.1)
+Provider: openai (gpt-5)
 Mutations: typo, role-spoof, instruction-flip, cot-injection
 Count per case: 5
 

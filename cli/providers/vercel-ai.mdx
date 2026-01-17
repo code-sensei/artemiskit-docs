@@ -1,0 +1,115 @@
+---
+title: Vercel AI SDK
+description: Configure ArtemisKit with Vercel AI SDK
+---
+
+# Vercel AI Provider
+
+Use ArtemisKit with the Vercel AI SDK, which provides a unified interface to multiple LLM providers.
+
+## Supported Underlying Providers
+
+The Vercel AI adapter currently supports:
+
+| Provider | Status |
+|----------|--------|
+| OpenAI | ✅ Supported |
+| Azure OpenAI | ✅ Supported |
+| Anthropic | 🔜 Coming soon |
+| Google | 🔜 Coming soon |
+| Mistral | 🔜 Coming soon |
+
+## Setup
+
+### 1. Install Dependencies
+
+The Vercel AI SDK is included with ArtemisKit. No additional installation required.
+
+### 2. Set Environment Variables
+
+For OpenAI:
+```bash
+export OPENAI_API_KEY="sk-..."
+```
+
+For Azure OpenAI:
+```bash
+export AZURE_OPENAI_API_KEY="your-key"
+export AZURE_OPENAI_RESOURCE_NAME="your-resource"
+```
+
+### 3. Configure Scenario
+
+```yaml
+name: my-test
+provider: vercel-ai
+model: gpt-5
+
+providerConfig:
+  underlyingProvider: openai  # or 'azure'
+
+cases:
+  - id: example
+    prompt: "Hello"
+    expected:
+      type: contains
+      values: ["hello"]
+      mode: any
+```
+
+## Config File
+
+Configure Vercel AI in your `artemis.config.yaml`:
+
+```yaml
+provider: vercel-ai
+model: gpt-5
+
+providers:
+  vercel-ai:
+    apiKey: ${OPENAI_API_KEY}
+    underlyingProvider: openai
+    timeout: 60000
+```
+
+### Azure Configuration
+
+```yaml
+provider: vercel-ai
+model: gpt-5
+
+providers:
+  vercel-ai:
+    apiKey: ${AZURE_OPENAI_API_KEY}
+    underlyingProvider: azure
+    providerConfig:
+      resourceName: ${AZURE_OPENAI_RESOURCE_NAME}
+```
+
+## Why Use Vercel AI?
+
+- **Unified API** — Same interface across different providers
+- **Easy switching** — Change providers with minimal code changes
+- **Future-proof** — Access to new providers as they're added
+
+## Available Models
+
+Models depend on the underlying provider:
+
+### OpenAI (underlyingProvider: openai)
+
+| Model | Description |
+|-------|-------------|
+| `gpt-5` | Latest flagship model |
+| `gpt-4o` | Multimodal, versatile |
+| `gpt-4o-mini` | Fast and cost-effective |
+
+### Azure (underlyingProvider: azure)
+
+Use your Azure deployment name as the model. The actual model depends on your Azure deployment configuration.
+
+## See Also
+
+- [OpenAI Provider](/docs/cli/providers/openai/)
+- [Azure OpenAI Provider](/docs/cli/providers/azure/)
+- [Scenario Format](/docs/cli/scenarios/format/)

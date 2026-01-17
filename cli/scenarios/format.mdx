@@ -13,7 +13,7 @@ ArtemisKit scenarios are defined in YAML files. This page covers the complete sc
 name: my-evaluation
 description: Description of this evaluation
 provider: openai
-model: gpt-5.1
+model: gpt-5
 
 cases:
   - id: test-case-id
@@ -43,6 +43,7 @@ cases:
 | `setup` | object | No | Setup configuration (system prompt, functions) |
 | `cases` | array | Yes | List of test cases |
 | `teardown` | object | No | Teardown configuration |
+| `redaction` | object | No | PII/sensitive data redaction configuration |
 
 ## Test Case Object
 
@@ -62,7 +63,7 @@ cases:
     timeout: 30000             # Optional: timeout in milliseconds
     retries: 0                 # Optional: number of retries (default: 0)
     provider: openai           # Optional: override scenario provider
-    model: gpt-5.1             # Optional: override scenario model
+    model: gpt-5             # Optional: override scenario model
     variables:                 # Optional: case-level variables
       name: "Alice"
 ```
@@ -74,7 +75,7 @@ Override provider settings at the scenario level:
 ```yaml
 name: with-provider-config
 provider: azure-openai
-model: gpt-5.1
+model: gpt-5
 
 providerConfig:
   resourceName: my-azure-resource
@@ -179,7 +180,7 @@ The system prompt from `setup.systemPrompt` is automatically prepended to multi-
 name: customer-support-bot
 description: Evaluation suite for customer support chatbot
 provider: openai
-model: gpt-5.1
+model: gpt-5
 seed: 42
 
 variables:
@@ -232,6 +233,64 @@ cases:
       mode: any
 ```
 
+## Redaction Configuration
+
+Configure PII/sensitive data redaction at the scenario level:
+
+```yaml
+name: with-redaction
+provider: openai
+model: gpt-5
+
+redaction:
+  enabled: true
+  patterns:
+    - email
+    - phone
+    - credit_card
+    - ssn
+    - api_key
+  redactPrompts: true
+  redactResponses: true
+  replacement: "[REDACTED]"
+
+cases:
+  - id: example
+    prompt: "Contact me at user@example.com"
+    expected:
+      type: contains
+      values: ["contact"]
+      mode: any
+```
+
+### Redaction Fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `enabled` | boolean | `false` | Enable/disable redaction |
+| `patterns` | array | Default patterns | Built-in patterns or custom regex |
+| `redactPrompts` | boolean | `true` | Redact prompts in output |
+| `redactResponses` | boolean | `true` | Redact responses in output |
+| `redactMetadata` | boolean | `false` | Redact metadata fields |
+| `replacement` | string | `[REDACTED]` | Replacement text |
+
+### Built-in Patterns
+
+Common patterns (used in CLI examples):
+- `email` — Email addresses
+- `phone` — Phone numbers
+- `credit_card` — Credit card numbers
+- `ssn` — Social Security Numbers
+- `api_key` — API keys and tokens
+
+Additional patterns available:
+- `ipv4` — IPv4 addresses
+- `jwt` — JWT tokens
+- `aws_key` — AWS access keys
+- `secrets` — Generic secrets (password=, secret=, etc.)
+
+You can also use custom regex patterns in the `patterns` array.
+
 ## Provider Override
 
 You can override provider settings at the scenario or case level:
@@ -239,7 +298,7 @@ You can override provider settings at the scenario or case level:
 ```yaml
 name: provider-override-example
 provider: openai
-model: gpt-5.1
+model: gpt-5
 
 cases:
   - id: test-with-different-model
