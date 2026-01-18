@@ -18,24 +18,24 @@ akit compare <baseline> <current> [options]
 
 | Argument | Description |
 |----------|-------------|
-| `baseline` | Run ID or path to baseline run_manifest.json |
-| `current` | Run ID or path to current run_manifest.json |
+| `baseline` | Run ID of the baseline run |
+| `current` | Run ID of the current run |
 
 ## Options
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `--threshold` | Regression threshold (0-1) | `0.05` (5%) |
-| `--config` | Path to config file | `artemis.config.yaml` |
+| `--threshold <number>` | Regression threshold (0-1) | `0.05` (5%) |
+| `--config <path>` | Path to config file | `artemis.config.yaml` |
 
 ## Examples
 
 ### Basic Comparison
 
-Compare two run manifests:
+Compare two runs by their IDs:
 
 ```bash
-akit compare ./baseline/run_manifest.json ./current/run_manifest.json
+akit compare ar-20260115-abc ar-20260118-def
 ```
 
 ### With Custom Threshold
@@ -43,44 +43,62 @@ akit compare ./baseline/run_manifest.json ./current/run_manifest.json
 Allow up to 10% regression before failing:
 
 ```bash
-akit compare baseline.json current.json --threshold 0.1
-```
-
-### Compare by Run ID
-
-If runs are saved to storage:
-
-```bash
-akit compare run_abc123 run_def456
+akit compare ar-20260115-abc ar-20260118-def --threshold 0.1
 ```
 
 ## Output
 
-The compare command outputs a detailed comparison:
+The compare command displays a formatted comparison table:
 
 ```
-Comparison: baseline vs current
-===============================
+╔════════════════════════════════════════════════════════════╗
+║                    COMPARISON RESULTS                      ║
+╠════════════════════════════════════════════════════════════╣
+║ Metric                Baseline     Current          Delta  ║
+╟────────────────────────────────────────────────────────────╢
+║ Success Rate            95.0%       92.0%         -3.00%   ║
+║ Median Latency          200ms       180ms        -20.00ms  ║
+║ Total Tokens            1,250       1,180        -70.00    ║
+╚════════════════════════════════════════════════════════════╝
 
-| Metric       | Baseline | Current | Delta   | Status |
-|--------------|----------|---------|---------|--------|
-| Success Rate | 95.0%    | 92.0%   | -3.0%   | ✓      |
-| Avg Latency  | 200ms    | 220ms   | +10.0%  | ⚠      |
-| Pass Count   | 19/20    | 18/20   | -1      | ✓      |
+Baseline: ar-20260115-abc
+Current:  ar-20260118-def
 
-Test Case Changes:
-  ✗ greeting-test: PASS → FAIL
-  
-Summary: 1 regression detected (within threshold)
+✓ No regression detected
+```
+
+### Delta Colors
+
+- **Green** — Improvement (higher success rate, lower latency/tokens)
+- **Red** — Regression (lower success rate, higher latency/tokens)
+- **Dim** — No change
+
+### Regression Detection
+
+When success rate drops beyond the threshold:
+
+```
+✗ Regression detected! Success rate dropped by 8.0% (threshold: 5%)
+```
+
+### CI/CD Output
+
+In non-TTY environments (CI/CD pipelines, redirected output), a simplified plain-text format is used:
+
+```
+=== COMPARISON RESULTS ===
+
+Success Rate:   95.0% -> 92.0%  (-3.00%)
+Median Latency: 200ms -> 180ms  (-20.00ms)
+Total Tokens:   1250 -> 1180  (-70.00)
 ```
 
 ## Exit Codes
 
 | Code | Meaning |
 |------|---------|
-| 0 | No significant regressions (within threshold) |
-| 1 | Regressions detected (above threshold) |
-| 2 | Error during comparison |
+| `0` | No significant regressions (within threshold) |
+| `1` | Regressions detected (above threshold) |
 
 ## CI/CD Integration
 
@@ -88,10 +106,10 @@ Use in GitHub Actions to gate deployments:
 
 ```yaml
 - name: Run evaluation
-  run: akit run scenarios/qa.yaml --save -o ./current
+  run: akit run scenarios/qa.yaml
 
 - name: Compare with baseline
-  run: akit compare ./baseline/run_manifest.json ./current/run_manifest.json --threshold 0.05
+  run: akit compare ${{ env.BASELINE_RUN_ID }} ${{ env.CURRENT_RUN_ID }} --threshold 0.05
 ```
 
 ## Baseline Strategies
@@ -104,10 +122,28 @@ ci:
   failOnRegression: true
   regressionThreshold: 0.05
   baselineStrategy: latest  # 'latest', 'tagged', or 'specific'
-  baselineRunId: run_abc123  # For 'specific' strategy
+  baselineRunId: ar-20260115-abc  # For 'specific' strategy
+```
+
+## Error Handling
+
+If a run ID doesn't exist, you'll see a helpful error:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  ✗ Failed to Compare Runs                                   │
+├─────────────────────────────────────────────────────────────┤
+│  Run not found: ar-nonexistent                              │
+│                                                             │
+│  Suggestions:                                               │
+│  • Check that both run IDs exist                            │
+│  • Run "artemiskit history" to see available runs           │
+│  • Verify storage configuration in artemis.config.yaml      │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## See Also
 
-- [Run Command](/docs/cli/commands/run/)
-- [CI/CD Integration](/docs/cli/ci-cd/)
+- [Run Command](/docs/cli/commands/run) — Run evaluations
+- [History Command](/docs/cli/commands/history) — View available runs
+- [CI/CD Integration](/docs/cli/ci-cd) — Automate in your pipeline

@@ -1,0 +1,222 @@
+---
+title: artemiskit init
+description: Initialize ArtemisKit in a project
+---
+
+# artemiskit init
+
+Initialize ArtemisKit in your project by creating the necessary configuration files, directories, and environment variables.
+
+## Synopsis
+
+```bash
+artemiskit init [options]
+akit init [options]
+```
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-f, --force` | Overwrite existing configuration files |
+| `--skip-env` | Skip adding environment variables to `.env` |
+
+## What It Creates
+
+Running `akit init` creates the following structure:
+
+```
+your-project/
+├── artemis.config.yaml    # Configuration file
+├── scenarios/
+│   └── example.yaml       # Example scenario
+├── artemis-runs/          # Storage for run results
+├── artemis-output/        # Output directory for reports
+└── .env                   # Environment variables (updated)
+```
+
+### Configuration File
+
+Creates `artemis.config.yaml` with sensible defaults:
+
+```yaml
+# ArtemisKit Configuration
+project: my-project
+
+# Default provider settings
+provider: openai
+model: gpt-4o-mini
+
+# Provider configurations
+providers:
+  openai:
+    apiKey: ${OPENAI_API_KEY}
+    defaultModel: gpt-4o-mini
+
+  azure-openai:
+    apiKey: ${AZURE_OPENAI_API_KEY}
+    resourceName: ${AZURE_OPENAI_RESOURCE}
+    deploymentName: ${AZURE_OPENAI_DEPLOYMENT}
+    apiVersion: "2024-02-15-preview"
+
+  anthropic:
+    apiKey: ${ANTHROPIC_API_KEY}
+    defaultModel: claude-sonnet-4-20250514
+
+# Storage configuration
+storage:
+  type: local
+  basePath: ./artemis-runs
+
+# Scenarios directory
+scenariosDir: ./scenarios
+
+# Output settings
+output:
+  format: json
+  dir: ./artemis-output
+```
+
+### Example Scenario
+
+Creates `scenarios/example.yaml` with working test cases:
+
+```yaml
+name: Example Scenario
+description: Basic example scenario for testing
+version: "1.0"
+provider: openai
+model: gpt-4o-mini
+temperature: 0
+
+cases:
+  - id: greeting
+    name: Simple Greeting
+    prompt: "Say hello in exactly 3 words."
+    expected:
+      type: regex
+      pattern: "^\\w+\\s+\\w+\\s+\\w+$"
+    tags:
+      - greeting
+      - basic
+
+  - id: math
+    name: Basic Math
+    prompt: "What is 2 + 2? Reply with just the number."
+    expected:
+      type: exact
+      value: "4"
+    tags:
+      - math
+      - basic
+```
+
+### Environment Variables
+
+Adds the following keys to your `.env` file (if they don't already exist):
+
+```bash
+# ArtemisKit Environment Variables
+OPENAI_API_KEY=
+AZURE_OPENAI_API_KEY=
+AZURE_OPENAI_RESOURCE=
+AZURE_OPENAI_DEPLOYMENT=
+AZURE_OPENAI_API_VERSION=
+ANTHROPIC_API_KEY=
+```
+
+## Examples
+
+### Basic Initialization
+
+```bash
+akit init
+```
+
+Output:
+
+```
+  ╔═══════════════════════════════════════════════════════╗
+  ║                                                       ║
+  ║     🎯 Welcome to ArtemisKit                          ║
+  ║     LLM Testing & Evaluation Toolkit                  ║
+  ║                                                       ║
+  ╚═══════════════════════════════════════════════════════╝
+
+✓ Created project structure
+✓ Created artemis.config.yaml
+✓ Created scenarios/example.yaml
+✓ Added 6 environment variable(s) to .env
+
+  ╭─────────────────────────────────────────────────────────╮
+  │  ✓ ArtemisKit initialized successfully!                 │
+  ├─────────────────────────────────────────────────────────┤
+  │                                                         │
+  │  Next steps:                                            │
+  │                                                         │
+  │  1. Set your API key:                                   │
+  │     export OPENAI_API_KEY="sk-..."                      │
+  │                                                         │
+  │  2. Run your first test:                                │
+  │     artemiskit run scenarios/example.yaml               │
+  │                                                         │
+  │  3. View the docs:                                      │
+  │     https://artemiskit.vercel.app/docs                  │
+  │                                                         │
+  ╰─────────────────────────────────────────────────────────╯
+```
+
+### Re-initialize with Force
+
+Overwrite existing configuration:
+
+```bash
+akit init --force
+```
+
+### Skip Environment Variables
+
+If you manage environment variables separately:
+
+```bash
+akit init --skip-env
+```
+
+## Existing Files
+
+When files already exist:
+
+- **Without `--force`**: Skips existing files with a notice
+- **With `--force`**: Overwrites existing files
+
+```bash
+$ akit init
+✓ Created project structure
+ℹ Config file already exists (use --force to overwrite)
+ℹ Example scenario already exists (use --force to overwrite)
+✓ Added 2 environment variable(s) to .env
+  ℹ Skipped 4 existing key(s): OPENAI_API_KEY, AZURE_OPENAI_API_KEY, ...
+```
+
+## Next Steps After Init
+
+1. **Set your API key**:
+   ```bash
+   export OPENAI_API_KEY="sk-..."
+   ```
+
+2. **Run the example scenario**:
+   ```bash
+   akit run scenarios/example.yaml
+   ```
+
+3. **Create your own scenarios** in the `scenarios/` directory
+
+4. **Customize** `artemis.config.yaml` for your project
+
+## See Also
+
+- [Getting Started](/docs/cli/getting-started) — Full getting started guide
+- [Scenario Format](/docs/cli/scenarios/format) — Learn scenario syntax
+- [Configuration](/docs/cli/installation) — Configuration options
+- [Providers](/docs/cli/providers) — Set up LLM providers

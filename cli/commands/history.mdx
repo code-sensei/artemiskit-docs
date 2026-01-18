@@ -1,0 +1,125 @@
+---
+title: artemiskit history
+description: View run history
+---
+
+# artemiskit history
+
+View the history of past evaluation runs stored locally or in configured storage.
+
+## Synopsis
+
+```bash
+artemiskit history [options]
+akit history [options]
+```
+
+## Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-p, --project <project>` | Filter by project name | — |
+| `-s, --scenario <scenario>` | Filter by scenario name | — |
+| `-l, --limit <number>` | Limit number of results | `20` |
+| `--config <path>` | Path to config file | `artemis.config.yaml` |
+
+## Examples
+
+### View Recent Runs
+
+```bash
+akit history
+```
+
+### Filter by Project
+
+```bash
+akit history --project my-project
+```
+
+### Filter by Scenario
+
+```bash
+akit history --scenario auth-tests
+```
+
+### Combine Filters with Limit
+
+```bash
+akit history --project my-project --scenario qa-suite --limit 10
+```
+
+## Output
+
+The history command displays runs in a formatted table:
+
+```
+╔════════════════════════════════════════════════════════════════════════════╗
+║                               RUN HISTORY                                  ║
+╠════════════════════════════════════════════════════════════════════════════╣
+║ Run ID           Scenario                       Success Rate          Date ║
+╟────────────────────────────────────────────────────────────────────────────╢
+║ ar-20260118-abc  auth-tests                           95.0%  1/18/26 10:30 ║
+║ ar-20260117-def  qa-suite                             88.5%  1/17/26 14:22 ║
+║ ar-20260117-ghi  stress-test                         100.0%  1/17/26 09:15 ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+Showing 3 runs (limit: 20)
+```
+
+### Success Rate Colors
+
+- **Green** — 90% or higher
+- **Yellow** — 70% to 89%
+- **Red** — Below 70%
+
+### CI/CD Output
+
+In non-TTY environments (CI/CD pipelines, redirected output), a simplified plain-text format is used:
+
+```
+=== RUN HISTORY ===
+
+ar-20260118-abc  auth-tests  95.0%  1/18/2026, 10:30:00 AM
+ar-20260117-def  qa-suite  88.5%  1/17/2026, 2:22:00 PM
+```
+
+## Empty Results
+
+If no runs are found, the command provides helpful feedback:
+
+```
+No runs found.
+
+Filters applied:
+  Project: my-project
+  Scenario: auth-tests
+
+Try removing filters or run some tests first.
+```
+
+## Storage Configuration
+
+The history command reads from your configured storage backend. Configure storage in `artemis.config.yaml`:
+
+```yaml
+storage:
+  type: local
+  basePath: ./artemis-runs
+```
+
+Or for Supabase:
+
+```yaml
+storage:
+  type: supabase
+  url: ${SUPABASE_URL}
+  anonKey: ${SUPABASE_ANON_KEY}
+```
+
+## See Also
+
+- [Run Command](/docs/cli/commands/run) — Run evaluations and save results
+- [Compare Command](/docs/cli/commands/compare) — Compare two runs
+- [Report Command](/docs/cli/commands/report) — Generate reports from saved runs
+- [Storage Backends](/docs/cli/storage) — Configure storage options
