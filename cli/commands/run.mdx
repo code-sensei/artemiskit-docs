@@ -10,15 +10,20 @@ Run scenario-based evaluations against your LLM.
 ## Synopsis
 
 ```bash
-artemiskit run <scenario-file> [options]
-akit run <scenario-file> [options]
+artemiskit run <scenario> [options]
+akit run <scenario> [options]
 ```
 
 ## Arguments
 
 | Argument | Description |
 |----------|-------------|
-| `scenario-file` | Path to the YAML scenario file |
+| `scenario` | Path to scenario file, directory, or glob pattern |
+
+The `scenario` argument supports:
+- **Single file**: `scenarios/test.yaml`
+- **Directory**: `scenarios/` (runs all `.yaml`/`.yml` files recursively)
+- **Glob pattern**: `scenarios/**/*.yaml` (matches pattern)
 
 ## Options
 
@@ -30,7 +35,8 @@ akit run <scenario-file> [options]
 | `--verbose` | `-v` | Verbose output | `false` |
 | `--tags` | `-t` | Filter test cases by tags | All cases |
 | `--save` | | Save results to storage (enabled by default) | `true` |
-| `--concurrency` | `-c` | Number of concurrent test cases | `1` |
+| `--concurrency` | `-c` | Number of concurrent test cases per scenario | `1` |
+| `--parallel` | | Number of scenarios to run in parallel | Sequential |
 | `--timeout` | | Timeout per test case (ms) | From config |
 | `--retries` | | Number of retries per test case | From config |
 | `--config` | | Path to config file | `artemis.config.yaml` |
@@ -49,6 +55,26 @@ You can also use custom regex patterns.
 
 ```bash
 akit run scenarios/qa-test.yaml
+```
+
+### Run All Scenarios in a Directory
+
+```bash
+akit run scenarios/
+```
+
+### Run with Glob Pattern
+
+```bash
+akit run "scenarios/**/*.yaml"
+```
+
+### Run Scenarios in Parallel
+
+Run 4 scenarios concurrently:
+
+```bash
+akit run scenarios/ --parallel 4
 ```
 
 ### With Provider Override

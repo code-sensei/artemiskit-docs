@@ -98,35 +98,40 @@ The stress test measures:
 | **Min/Max Latency** | Latency range |
 | **Success Rate** | Percentage of successful requests |
 | **Error Rate** | Failures and rate limiting |
+| **Total Tokens** | Total tokens consumed (prompt + completion) |
+| **Avg Tokens/Request** | Average token usage per request |
+| **Estimated Cost** | Cost estimation based on model pricing |
 
 ## Example Output
 
 ```
 Stress Test: chatbot
-Provider: openai (gpt-5)
+Provider: openai (gpt-4o-mini)
 Duration: 30s | Concurrency: 50 | Ramp-up: 5s
 
 Progress: [████████████████████] 100%
 
-Results
-=======
-Total Requests: 523
-Duration: 30.2s
-
-Throughput: 17.3 req/s
-Success Rate: 98.1%
-
-Latency Distribution:
-  Avg:  289ms
-  P50:  245ms
-  P90:  478ms
-  P95:  512ms
-  P99:  892ms
-  Min:   89ms
-  Max: 1,245ms
-
-Errors:
-  Rate Limited: 10 (1.9%)
+┌─ STRESS TEST SUMMARY ─────────────────────────────┐
+│ Total Requests:     523                           │
+│ Successful:         513 (98.1%)                   │
+│ Failed:              10 (1.9%)                    │
+│ Duration:           30.2s                         │
+│ Throughput:         17.3 req/s                    │
+├───────────────────────────────────────────────────┤
+│ LATENCY                                           │
+│ Avg: 289ms | P50: 245ms | P95: 512ms | P99: 892ms│
+│ Min: 89ms  | Max: 1,245ms                         │
+├───────────────────────────────────────────────────┤
+│ TOKEN USAGE                                       │
+│ Total Tokens:       125,000                       │
+│ Prompt Tokens:       75,000                       │
+│ Completion Tokens:   50,000                       │
+│ Avg per Request:      1,250                       │
+├───────────────────────────────────────────────────┤
+│ COST ESTIMATION                                   │
+│ Estimated Total:    $2.50                         │
+│ Model: gpt-4o-mini @ $0.15/$0.60 per 1M tokens    │
+└───────────────────────────────────────────────────┘
 ```
 
 ## Rate Limiting
