@@ -13,6 +13,7 @@ ArtemisKit supports multiple LLM providers through adapters. Choose the one that
 |----------|---------|----------|
 | [OpenAI](/docs/cli/providers/openai/) | `@artemiskit/adapter-openai` | GPT models, production |
 | [Azure OpenAI](/docs/cli/providers/azure/) | `@artemiskit/adapter-openai` | Enterprise, compliance |
+| [OpenAI-Compatible](/docs/cli/providers/openai-compatible/) | `@artemiskit/adapter-openai` | Groq, Together, Ollama, etc. |
 | [Anthropic](/docs/cli/providers/anthropic/) | `@artemiskit/adapter-anthropic` | Claude models |
 | [Vercel AI](/docs/cli/providers/vercel-ai/) | `@artemiskit/adapter-vercel-ai` | Multi-provider apps |
 
@@ -68,6 +69,24 @@ export OPENAI_API_KEY="sk-..."  # or other provider keys
 provider: vercel-ai
 model: openai:gpt-4o  # format: provider:model
 ```
+
+### OpenAI-Compatible (Groq, Together, Ollama, etc.)
+
+```bash
+export GROQ_API_KEY="gsk_..."  # or other provider key
+```
+
+```yaml
+provider: openai
+model: llama-3.3-70b-versatile
+
+providers:
+  openai:
+    apiKey: ${GROQ_API_KEY}
+    baseUrl: https://api.groq.com/openai/v1
+```
+
+See [OpenAI-Compatible Providers](/docs/cli/providers/openai-compatible/) for Groq, Together AI, Fireworks, OpenRouter, Ollama, LM Studio, and vLLM setup guides.
 
 ## Feature Comparison
 

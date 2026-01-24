@@ -1,0 +1,383 @@
+---
+title: OpenAI-Compatible APIs
+description: Use ArtemisKit with OpenAI-compatible providers like Groq, Together AI, Ollama, and more
+---
+
+# OpenAI-Compatible APIs
+
+ArtemisKit works with any provider that implements the OpenAI API specification. This includes cloud providers, local inference servers, and API aggregators.
+
+## How It Works
+
+The `@artemiskit/adapter-openai` adapter accepts a `baseUrl` option that redirects API calls to any OpenAI-compatible endpoint:
+
+```yaml
+providers:
+  openai:
+    apiKey: ${YOUR_API_KEY}
+    baseUrl: https://your-provider.com/v1
+```
+
+## Supported Providers
+
+| Provider | Base URL | Best For |
+|----------|----------|----------|
+| [Groq](#groq) | `https://api.groq.com/openai/v1` | Ultra-fast LPU inference |
+| [Together AI](#together-ai) | `https://api.together.xyz/v1` | 200+ open-source models |
+| [Fireworks AI](#fireworks-ai) | `https://api.fireworks.ai/inference/v1` | Function calling, MoE models |
+| [OpenRouter](#openrouter) | `https://openrouter.ai/api/v1` | 400+ models, unified API |
+| [Ollama](#ollama) | `http://localhost:11434/v1` | Local inference |
+| [LM Studio](#lm-studio) | `http://localhost:1234/v1` | Local GUI + API |
+| [vLLM](#vllm) | `http://localhost:8000/v1` | Production self-hosting |
+
+---
+
+## Groq
+
+Ultra-fast inference powered by custom LPU (Language Processing Unit) hardware. Achieves up to 1660 tokens/second with speculative decoding.
+
+### Setup
+
+1. Get your API key from [console.groq.com](https://console.groq.com/keys)
+
+2. Set environment variable:
+```bash
+export GROQ_API_KEY="gsk_..."
+```
+
+3. Configure ArtemisKit:
+```yaml
+name: groq-test
+provider: openai
+model: llama-3.3-70b-specdec
+
+providers:
+  openai:
+    apiKey: ${GROQ_API_KEY}
+    baseUrl: https://api.groq.com/openai/v1
+
+cases:
+  - id: example
+    prompt: "What is 2+2?"
+    expected:
+      type: contains
+      values: ["4"]
+```
+
+### Available Models
+
+| Model | Context | Notes |
+|-------|---------|-------|
+| `llama-3.3-70b-specdec` | 128K | Fastest 70B (1660 T/s with speculative decoding) |
+| `llama-3.3-70b-versatile` | 128K | Best quality general-purpose |
+| `llama-3-groq-70b-tool-use` | 8K | #1 on Berkeley Function Calling Leaderboard |
+| `llama-3.1-405b-instruct` | 128K | Largest open model |
+| `qwen3-32b` | 128K | Strong multilingual |
+| `mixtral-8x7b-32768` | 32K | Fast MoE |
+
+---
+
+## Together AI
+
+Access to 200+ open-source models with the Together Inference Engine (4x faster than vLLM). Features frontier-class models including Qwen3 and DeepSeek.
+
+### Setup
+
+1. Get your API key from [api.together.xyz](https://api.together.xyz/settings/api-keys)
+
+2. Set environment variable:
+```bash
+export TOGETHER_API_KEY="..."
+```
+
+3. Configure ArtemisKit:
+```yaml
+name: together-test
+provider: openai
+model: Qwen/Qwen3-235B-A22B-Instruct
+
+providers:
+  openai:
+    apiKey: ${TOGETHER_API_KEY}
+    baseUrl: https://api.together.xyz/v1
+
+cases:
+  - id: example
+    prompt: "Explain quantum computing"
+    expected:
+      type: contains
+      values: ["qubit"]
+```
+
+### Available Models
+
+| Model | Context | Notes |
+|-------|---------|-------|
+| `Qwen/Qwen3-235B-A22B-Instruct` | 262K | Outperforms GPT-4 on benchmarks, 22B active params |
+| `Qwen/Qwen3-235B-A22B-Thinking` | 262K | Deep reasoning mode, beats OpenAI o3 |
+| `Qwen/Qwen3-Coder-480B-A35B` | 128K | Largest open-source coding model |
+| `deepseek-ai/DeepSeek-R1` | 128K | State-of-the-art reasoning (math, code, logic) |
+| `deepseek-ai/DeepSeek-V3` | 128K | 671B MoE, 37B active, tool calling |
+| `meta-llama/Llama-3.3-70B-Instruct-Turbo` | 128K | Fast Llama 3.3 |
+
+---
+
+## Fireworks AI
+
+Optimized for function calling, structured outputs, and MoE models. 4x throughput with 50% lower latency on NVIDIA H100s.
+
+### Setup
+
+1. Get your API key from [fireworks.ai/account/api-keys](https://fireworks.ai/account/api-keys)
+
+2. Set environment variable:
+```bash
+export FIREWORKS_API_KEY="..."
+```
+
+3. Configure ArtemisKit:
+```yaml
+name: fireworks-test
+provider: openai
+model: accounts/fireworks/models/qwen3-235b-a22b
+
+providers:
+  openai:
+    apiKey: ${FIREWORKS_API_KEY}
+    baseUrl: https://api.fireworks.ai/inference/v1
+
+cases:
+  - id: example
+    prompt: "Write a haiku about testing"
+    expected:
+      type: contains
+      values: ["test", "code"]
+      mode: any
+```
+
+### Available Models
+
+| Model | Context | Notes |
+|-------|---------|-------|
+| `accounts/fireworks/models/qwen3-235b-a22b` | 262K | Best quality MoE |
+| `accounts/fireworks/models/qwen3-coder-480b-a35b-instruct` | 128K | Largest coding model |
+| `accounts/fireworks/models/deepseek-r1-0528` | 128K | Advanced reasoning |
+| `accounts/fireworks/models/glm-4p7-flash` | 202K | 30B MoE, fast and efficient |
+| `accounts/fireworks/models/llama-v3p3-70b-instruct` | 128K | Reliable general-purpose |
+
+---
+
+## OpenRouter
+
+Single unified API for 400+ models from all major providers. Automatic fallbacks, load balancing, and cost optimization.
+
+### Setup
+
+1. Get your API key from [openrouter.ai/keys](https://openrouter.ai/keys)
+
+2. Set environment variable:
+```bash
+export OPENROUTER_API_KEY="sk-or-..."
+```
+
+3. Configure ArtemisKit:
+```yaml
+name: openrouter-test
+provider: openai
+model: deepseek/deepseek-r1
+
+providers:
+  openai:
+    apiKey: ${OPENROUTER_API_KEY}
+    baseUrl: https://openrouter.ai/api/v1
+
+cases:
+  - id: example
+    prompt: "Hello"
+    expected:
+      type: contains
+      values: ["hello", "hi"]
+      mode: any
+```
+
+### Available Models
+
+OpenRouter provides access to models from all major providers:
+
+| Model | Provider | Notes |
+|-------|----------|-------|
+| `openai/gpt-5.2` | OpenAI | 400K context, adaptive reasoning |
+| `google/gemini-3` | Google | 1M token context, multimodal |
+| `anthropic/claude-sonnet-4` | Anthropic | Latest Claude |
+| `deepseek/deepseek-r1` | DeepSeek | Frontier quality at 1/100th cost |
+| `mistralai/devstral-2` | Mistral | 123B agentic coding, 256K context |
+| `meta-llama/llama-4-scout` | Meta | Multimodal, extreme context |
+| `xiaomi/mimo-v2-flash` | Xiaomi | 309B MoE, 15B active, 256K context |
+
+See [openrouter.ai/models](https://openrouter.ai/models) for the full list of 400+ models.
+
+---
+
+## Ollama
+
+Run models locally on your machine. No API key required. Partners with OpenAI to bring GPT-OSS to local inference.
+
+### Setup
+
+1. Install Ollama from [ollama.com](https://ollama.com)
+
+2. Pull a model:
+```bash
+ollama pull qwen3
+```
+
+3. Start the server (runs automatically on install):
+```bash
+ollama serve
+```
+
+4. Configure ArtemisKit:
+```yaml
+name: ollama-test
+provider: openai
+model: qwen3
+
+providers:
+  openai:
+    apiKey: ollama  # Required but ignored
+    baseUrl: http://localhost:11434/v1
+
+cases:
+  - id: example
+    prompt: "What is the capital of France?"
+    expected:
+      type: contains
+      values: ["Paris"]
+```
+
+### Available Models
+
+Run `ollama list` to see installed models. Popular options:
+
+| Model | Size | Notes |
+|-------|------|-------|
+| `qwen3` | 8B | Latest Qwen with dual-mode reasoning |
+| `qwen3:72b` | 72B | Best quality Qwen |
+| `deepseek-r1` | 7B-671B | State-of-the-art reasoning |
+| `llama3.3` | 70B | Latest Llama |
+| `gpt-oss` | varies | OpenAI's open-source model |
+| `gemma3` | 4B-27B | Google's efficient models |
+| `mistral-large-3` | varies | Multimodal MoE for enterprise |
+| `qwen3-coder` | varies | Code-specialized |
+
+---
+
+## LM Studio
+
+Desktop app with a local API server. Easy model management with GUI.
+
+### Setup
+
+1. Download from [lmstudio.ai](https://lmstudio.ai)
+
+2. Load a model in the app (recommended: Qwen3, DeepSeek-R1, or Llama 3.3)
+
+3. Start the local server (Developer tab → Start Server)
+
+4. Configure ArtemisKit:
+```yaml
+name: lmstudio-test
+provider: openai
+model: local-model  # Model name from LM Studio
+
+providers:
+  openai:
+    apiKey: lm-studio  # Required but ignored
+    baseUrl: http://localhost:1234/v1
+
+cases:
+  - id: example
+    prompt: "Explain recursion"
+    expected:
+      type: contains
+      values: ["function", "itself"]
+      mode: any
+```
+
+---
+
+## vLLM
+
+High-performance inference server for production self-hosting. Supports speculative decoding, continuous batching, and PagedAttention.
+
+### Setup
+
+1. Install vLLM:
+```bash
+pip install vllm
+```
+
+2. Start the server:
+```bash
+python -m vllm.entrypoints.openai.api_server \
+  --model Qwen/Qwen3-8B \
+  --port 8000
+```
+
+3. Configure ArtemisKit:
+```yaml
+name: vllm-test
+provider: openai
+model: Qwen/Qwen3-8B
+
+providers:
+  openai:
+    apiKey: vllm  # Required but ignored
+    baseUrl: http://localhost:8000/v1
+
+cases:
+  - id: example
+    prompt: "Hello"
+    expected:
+      type: contains
+      values: ["hello", "hi"]
+      mode: any
+```
+
+---
+
+## Troubleshooting
+
+### Connection Refused
+
+For local servers (Ollama, LM Studio, vLLM), ensure the server is running:
+
+```bash
+# Check if server is responding
+curl http://localhost:11434/v1/models
+```
+
+### Authentication Errors
+
+Some providers require specific header formats. If you get auth errors, check the provider's documentation for any custom headers.
+
+### Model Not Found
+
+Model names vary by provider. Check the provider's documentation for exact model identifiers.
+
+### Timeout Errors
+
+For local inference with large models, increase the timeout:
+
+```yaml
+providers:
+  openai:
+    baseUrl: http://localhost:11434/v1
+    timeout: 120000  # 2 minutes
+```
+
+## See Also
+
+- [OpenAI](/docs/cli/providers/openai/)
+- [Azure OpenAI](/docs/cli/providers/azure/)
+- [Scenario Format](/docs/cli/scenarios/format/)
