@@ -18,6 +18,8 @@ Expectations define how ArtemisKit evaluates LLM responses. Each test case requi
 | `fuzzy` | Approximate string matching |
 | `llm_grader` | Use an LLM to evaluate the response |
 | `json_schema` | Validate response against a JSON schema |
+| `similarity` | Semantic similarity matching using embeddings or LLM |
+| `inline` | Expression-based matchers defined directly in YAML |
 | `combined` | Combine multiple expectations with `and`/`or` logic |
 | `custom` | Use a custom evaluator |
 
@@ -262,6 +264,125 @@ expected:
         type: array
         items:
           type: object
+```
+
+## Similarity
+
+Check if the response is semantically similar to a reference text. Uses embeddings when available, falls back to LLM-based comparison.
+
+```yaml
+expected:
+  type: similarity
+  value: "The product is available in three colors: red, blue, and green."
+  threshold: 0.75  # Minimum similarity score 0-1 (default: 0.75)
+  model: text-embedding-3-small  # Optional: override embedding model
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | Yes | Must be `similarity` |
+| `value` | string | Yes | The reference text to compare against |
+| `threshold` | number | No | Minimum similarity score 0-1 (default: 0.75) |
+| `model` | string | No | Embedding model to use (provider-specific) |
+
+### Examples
+
+Basic semantic similarity:
+```yaml
+expected:
+  type: similarity
+  value: "The weather today will be sunny with a high of 75°F"
+  threshold: 0.8
+```
+
+Lower threshold for more flexible matching:
+```yaml
+expected:
+  type: similarity
+  value: "Thank you for your purchase. Your order has been confirmed."
+  threshold: 0.6
+```
+
+## Inline
+
+Define expression-based matchers directly in YAML. Allows flexible matching logic without writing custom evaluators.
+
+```yaml
+expected:
+  type: inline
+  expression: 'response.includes("hello") && length > 10'
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | Yes | Must be `inline` |
+| `expression` | string | Yes | Safe expression to evaluate |
+| `value` | string | No | Optional value for `expected` variable in expressions |
+
+### Supported Expressions
+
+| Expression | Description |
+|------------|-------------|
+| `response.includes("text")` | Check if response contains text |
+| `!response.includes("text")` | Check if response does NOT contain text |
+| `response.startsWith("text")` | Check if response starts with text |
+| `response.endsWith("text")` | Check if response ends with text |
+| `response.toLowerCase().includes("text")` | Case-insensitive contains |
+| `response.match(/regex/)` | Match against a regex pattern |
+| `!response.match(/regex/)` | Ensure regex does NOT match |
+| `length > N` | Check response character length |
+| `words.length > N` | Check word count |
+| `lines.length > N` | Check line count |
+| `json.field == "value"` | Check JSON field value |
+| `json.field > N` | Numeric comparison on JSON field |
+| `json != null` | Check if response is valid JSON |
+| `response == expected` | Compare to the `value` field |
+| `expr1 && expr2` | Logical AND (both must pass) |
+| `expr1 \|\| expr2` | Logical OR (either can pass) |
+
+### Examples
+
+Check response length and content:
+```yaml
+expected:
+  type: inline
+  expression: 'length > 50 && response.includes("thank you")'
+```
+
+Validate word count:
+```yaml
+expected:
+  type: inline
+  expression: 'words.length >= 10 && words.length <= 100'
+```
+
+Check JSON structure:
+```yaml
+expected:
+  type: inline
+  expression: 'json != null && json.status == "success"'
+```
+
+Regex matching with length constraint:
+```yaml
+expected:
+  type: inline
+  expression: 'response.match(/\d{3}-\d{4}/) && length < 200'
+```
+
+Ensure clean response (no errors):
+```yaml
+expected:
+  type: inline
+  expression: '!response.includes("error") && !response.match(/exception/i)'
+```
+
+Compare to expected value:
+```yaml
+expected:
+  type: inline
+  expression: 'response.trim() == expected'
+  value: "Hello, World!"
 ```
 
 ## Combined
