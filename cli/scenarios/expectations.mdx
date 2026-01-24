@@ -12,11 +12,13 @@ Expectations define how ArtemisKit evaluates LLM responses. Each test case requi
 | Type | Description |
 |------|-------------|
 | `contains` | Check if response contains specific strings |
+| `not_contains` | Check if response does NOT contain specific strings |
 | `exact` | Check for exact string match |
 | `regex` | Match against a regular expression |
 | `fuzzy` | Approximate string matching |
 | `llm_grader` | Use an LLM to evaluate the response |
 | `json_schema` | Validate response against a JSON schema |
+| `combined` | Combine multiple expectations with `and`/`or` logic |
 | `custom` | Use a custom evaluator |
 
 ## Contains
@@ -54,6 +56,43 @@ expected:
   type: contains
   values: ["price", "available"]
   mode: all
+```
+
+## Not Contains
+
+Check if the response does NOT contain specific strings. The inverse of `contains`.
+
+```yaml
+expected:
+  type: not_contains
+  values:
+    - "error"
+    - "failed"
+  mode: any  # 'any' = fail if any value found, 'all' = fail only if all found
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | Yes | Must be `not_contains` |
+| `values` | array | Yes | Array of strings that should NOT be present |
+| `mode` | string | No | `all` (default) or `any` |
+
+### Examples
+
+Fail if any forbidden term is found:
+```yaml
+expected:
+  type: not_contains
+  values: ["password", "secret", "credential"]
+  mode: any
+```
+
+Ensure response doesn't contain error indicators:
+```yaml
+expected:
+  type: not_contains
+  values: ["error", "exception", "failed"]
+  mode: any
 ```
 
 ## Exact
@@ -225,6 +264,74 @@ expected:
           type: object
 ```
 
+## Combined
+
+Combine multiple expectations with `and`/`or` logic. This allows you to create complex evaluation criteria by combining any of the other expectation types.
+
+```yaml
+expected:
+  type: combined
+  operator: and  # 'and' = all must pass, 'or' = at least one must pass
+  expectations:
+    - type: contains
+      values: ["hello"]
+      mode: any
+    - type: not_contains
+      values: ["error"]
+      mode: any
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | Yes | Must be `combined` |
+| `operator` | string | Yes | `and` or `or` |
+| `expectations` | array | Yes | Array of expectation objects to combine |
+
+### Examples
+
+Response must contain greeting AND not contain errors:
+```yaml
+expected:
+  type: combined
+  operator: and
+  expectations:
+    - type: contains
+      values: ["hello", "hi", "welcome"]
+      mode: any
+    - type: not_contains
+      values: ["error", "failed", "exception"]
+      mode: any
+```
+
+Response must match a pattern OR contain specific text:
+```yaml
+expected:
+  type: combined
+  operator: or
+  expectations:
+    - type: regex
+      pattern: "\\d{3}-\\d{4}"
+    - type: contains
+      values: ["phone number not available"]
+      mode: any
+```
+
+Complex validation with multiple criteria:
+```yaml
+expected:
+  type: combined
+  operator: and
+  expectations:
+    - type: contains
+      values: ["price", "cost"]
+      mode: any
+    - type: regex
+      pattern: "\\$\\d+\\.\\d{2}"
+    - type: not_contains
+      values: ["unavailable", "out of stock"]
+      mode: any
+```
+
 ## Custom
 
 Use a custom evaluator function.
@@ -271,6 +378,14 @@ expected:
   mode: all
 ```
 
+### Ensuring forbidden content is absent
+```yaml
+expected:
+  type: not_contains
+  values: ["password", "api_key", "secret", "credential"]
+  mode: any
+```
+
 ### Validating formatted output
 ```yaml
 expected:
@@ -284,6 +399,22 @@ expected:
   type: llm_grader
   rubric: "Response is helpful, accurate, and professionally written"
   threshold: 0.8
+```
+
+### Combining multiple conditions
+```yaml
+expected:
+  type: combined
+  operator: and
+  expectations:
+    - type: contains
+      values: ["thank you", "thanks"]
+      mode: any
+    - type: not_contains
+      values: ["error", "cannot", "unable"]
+      mode: any
+    - type: regex
+      pattern: "\\d+"  # Must contain at least one number
 ```
 
 ## See Also
