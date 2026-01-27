@@ -268,14 +268,19 @@ expected:
 
 ## Similarity
 
-Check if the response is semantically similar to a reference text. Uses embeddings when available, falls back to LLM-based comparison.
+Check if the response is semantically similar to a reference text. Supports two evaluation modes:
+
+- **Embedding mode**: Uses vector embeddings for fast, cost-effective comparison
+- **LLM mode**: Uses an LLM to evaluate semantic similarity (slower but more nuanced)
 
 ```yaml
 expected:
   type: similarity
   value: "The product is available in three colors: red, blue, and green."
   threshold: 0.75  # Minimum similarity score 0-1 (default: 0.75)
-  model: text-embedding-3-small  # Optional: override embedding model
+  mode: embedding  # Optional: 'embedding', 'llm', or omit for auto
+  embeddingModel: text-embedding-3-large  # Optional: embedding model (for embedding mode)
+  model: gpt-4o  # Optional: LLM model (for llm mode)
 ```
 
 | Field | Type | Required | Description |
@@ -283,19 +288,39 @@ expected:
 | `type` | string | Yes | Must be `similarity` |
 | `value` | string | Yes | The reference text to compare against |
 | `threshold` | number | No | Minimum similarity score 0-1 (default: 0.75) |
-| `model` | string | No | Embedding model to use (provider-specific) |
+| `mode` | string | No | `embedding`, `llm`, or omit for auto (tries embedding first) |
+| `embeddingModel` | string | No | Embedding model to use (e.g., `text-embedding-3-large`) |
+| `model` | string | No | LLM model for llm mode comparison |
+
+### Mode Behavior
+
+- **Auto (default)**: Tries embedding first, falls back to LLM if embeddings unavailable
+- **Embedding**: Uses only embeddings; fails if embedding function unavailable
+- **LLM**: Uses only LLM-based comparison; skips embedding entirely
 
 ### Examples
 
-Basic semantic similarity:
+Embedding mode with specific model:
 ```yaml
 expected:
   type: similarity
+  mode: embedding
+  embeddingModel: text-embedding-3-large
   value: "The weather today will be sunny with a high of 75°F"
   threshold: 0.8
 ```
 
-Lower threshold for more flexible matching:
+LLM mode for nuanced comparison:
+```yaml
+expected:
+  type: similarity
+  mode: llm
+  model: gpt-4o
+  value: "A helpful explanation of how photosynthesis works"
+  threshold: 0.7
+```
+
+Auto mode (default behavior):
 ```yaml
 expected:
   type: similarity
@@ -303,86 +328,154 @@ expected:
   threshold: 0.6
 ```
 
+Using Azure OpenAI embeddings:
+```yaml
+expected:
+  type: similarity
+  mode: embedding
+  embeddingModel: text-embedding-ada-002
+  value: "Customer support response acknowledging the issue"
+  threshold: 0.75
+```
+
 ## Inline
 
-Define expression-based matchers directly in YAML. Allows flexible matching logic without writing custom evaluators.
+Define expression-based matchers directly in YAML. Allows flexible matching logic without writing custom evaluators. Expressions are evaluated safely without using `eval()`.
 
 ```yaml
 expected:
   type: inline
-  expression: 'response.includes("hello") && length > 10'
+  expression: 'includes("hello") && length > 10'
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `type` | string | Yes | Must be `inline` |
 | `expression` | string | Yes | Safe expression to evaluate |
-| `value` | string | No | Optional value for `expected` variable in expressions |
+| `value` | string | No | Optional value for comparisons |
 
 ### Supported Expressions
 
+#### Length Checks
+
 | Expression | Description |
 |------------|-------------|
-| `response.includes("text")` | Check if response contains text |
-| `!response.includes("text")` | Check if response does NOT contain text |
-| `response.startsWith("text")` | Check if response starts with text |
-| `response.endsWith("text")` | Check if response ends with text |
-| `response.toLowerCase().includes("text")` | Case-insensitive contains |
-| `response.match(/regex/)` | Match against a regex pattern |
-| `!response.match(/regex/)` | Ensure regex does NOT match |
-| `length > N` | Check response character length |
-| `words.length > N` | Check word count |
-| `lines.length > N` | Check line count |
-| `json.field == "value"` | Check JSON field value |
-| `json.field > N` | Numeric comparison on JSON field |
-| `json != null` | Check if response is valid JSON |
-| `response == expected` | Compare to the `value` field |
-| `expr1 && expr2` | Logical AND (both must pass) |
-| `expr1 \|\| expr2` | Logical OR (either can pass) |
+| `length > N` | Response has more than N characters |
+| `length < N` | Response has fewer than N characters |
+| `length == N` | Response has exactly N characters |
+| `length >= N` | Response has N or more characters |
+| `length <= N` | Response has N or fewer characters |
+
+#### String Checks
+
+| Expression | Description |
+|------------|-------------|
+| `startsWith("prefix")` | Response starts with the given text |
+| `endsWith("suffix")` | Response ends with the given text |
+| `includes("text")` | Response contains the given text |
+| `!includes("text")` | Response does NOT contain the given text |
+
+#### Regex Matching
+
+| Expression | Description |
+|------------|-------------|
+| `matches(/pattern/)` | Response matches the regex pattern |
+| `matches(/pattern/i)` | Case-insensitive regex match |
+| `matches(/pattern/g)` | Global regex match |
+
+#### JSON Field Checks
+
+| Expression | Description |
+|------------|-------------|
+| `json.field == "value"` | JSON field equals string value |
+| `json.field == 42` | JSON field equals numeric value |
+| `json.field == true` | JSON field equals boolean |
+| `json.nested.field == "value"` | Nested JSON field check |
+
+#### Combined Expressions
+
+| Expression | Description |
+|------------|-------------|
+| `expr1 && expr2` | Both expressions must pass (AND) |
+| `expr1 \|\| expr2` | Either expression can pass (OR) |
 
 ### Examples
 
-Check response length and content:
+Check response length:
 ```yaml
 expected:
   type: inline
-  expression: 'length > 50 && response.includes("thank you")'
+  expression: 'length >= 50 && length <= 280'
 ```
 
-Validate word count:
+Check string format:
 ```yaml
 expected:
   type: inline
-  expression: 'words.length >= 10 && words.length <= 100'
+  expression: 'startsWith("{") && endsWith("}")'
 ```
 
-Check JSON structure:
+Check for required content:
 ```yaml
 expected:
   type: inline
-  expression: 'json != null && json.status == "success"'
+  expression: 'includes("thank you") || includes("thanks")'
 ```
 
-Regex matching with length constraint:
+Exclude forbidden content:
 ```yaml
 expected:
   type: inline
-  expression: 'response.match(/\d{3}-\d{4}/) && length < 200'
+  expression: '!includes("error") && !includes("failed")'
 ```
 
-Ensure clean response (no errors):
+Regex validation (email format):
 ```yaml
 expected:
   type: inline
-  expression: '!response.includes("error") && !response.match(/exception/i)'
+  expression: 'matches(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)'
 ```
 
-Compare to expected value:
+Case-insensitive regex:
 ```yaml
 expected:
   type: inline
-  expression: 'response.trim() == expected'
-  value: "Hello, World!"
+  expression: 'matches(/^(yes|no)$/i)'
+```
+
+JSON field validation:
+```yaml
+expected:
+  type: inline
+  expression: 'json.status == "success"'
+```
+
+Nested JSON field:
+```yaml
+expected:
+  type: inline
+  expression: 'json.user.role == "admin"'
+```
+
+JSON boolean check:
+```yaml
+expected:
+  type: inline
+  expression: 'json.active == true'
+```
+
+Complex combined validation:
+```yaml
+expected:
+  type: inline
+  expression: 'startsWith("PROD-") && length >= 10 && length <= 20 && matches(/^[A-Z0-9-]+$/)'
+```
+
+API response validation:
+```yaml
+expected:
+  type: inline
+  expression: 'json.status == "success" && includes("data")'
 ```
 
 ## Combined
