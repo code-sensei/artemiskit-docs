@@ -33,7 +33,7 @@ The `scenario` argument supports:
 | `--model` | `-m` | Model name | From config/scenario |
 | `--output` | `-o` | Output directory for results | `artemis-output` |
 | `--verbose` | `-v` | Verbose output | `false` |
-| `--tags` | `-t` | Filter test cases by tags | All cases |
+| `--tags` | `-t` | Filter test cases by tags (space-separated) | All cases |
 | `--save` | | Save results to storage (enabled by default) | `true` |
 | `--concurrency` | `-c` | Number of concurrent test cases per scenario | `1` |
 | `--parallel` | | Number of scenarios to run in parallel | Sequential |
@@ -41,7 +41,7 @@ The `scenario` argument supports:
 | `--retries` | | Number of retries per test case | From config |
 | `--config` | | Path to config file | `artemis.config.yaml` |
 | `--redact` | | Enable PII/sensitive data redaction | `false` |
-| `--redact-patterns` | | Custom redaction patterns (regex or built-in) | Default patterns |
+| `--redact-patterns` | | Custom redaction patterns (space-separated) | Default patterns |
 
 ### Redaction Patterns
 

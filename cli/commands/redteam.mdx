@@ -26,7 +26,7 @@ akit redteam <scenario-file> [options]
 |--------|-------|-------------|---------|
 | `--provider` | `-p` | LLM provider to use | From config/scenario |
 | `--model` | `-m` | Model name | From config/scenario |
-| `--mutations` | | Mutation types to apply | All types |
+| `--mutations` | | Mutation types to apply (space-separated) | All types |
 | `--count` | `-c` | Number of mutated prompts per case | `5` |
 | `--custom-attacks` | | Path to custom attacks YAML file | None |
 | `--save` | | Save results to storage | `false` |
@@ -34,11 +34,13 @@ akit redteam <scenario-file> [options]
 | `--verbose` | `-v` | Verbose output | `false` |
 | `--config` | | Path to config file | `artemis.config.yaml` |
 | `--redact` | | Enable PII/sensitive data redaction | `false` |
-| `--redact-patterns` | | Custom redaction patterns (regex or built-in) | Default patterns |
+| `--redact-patterns` | | Custom redaction patterns (space-separated) | Default patterns |
 
 ### Redaction Patterns
 
 Built-in patterns: `email`, `phone`, `credit_card`, `ssn`, `api_key`
+
+You can also use custom regex patterns.
 
 ## Mutation Types
 

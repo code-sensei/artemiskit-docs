@@ -35,11 +35,13 @@ akit stress <scenario-file> [options]
 | `--verbose` | `-v` | Verbose output | `false` |
 | `--config` | | Path to config file | `artemis.config.yaml` |
 | `--redact` | | Enable PII/sensitive data redaction | `false` |
-| `--redact-patterns` | | Custom redaction patterns (regex or built-in) | Default patterns |
+| `--redact-patterns` | | Custom redaction patterns (space-separated) | Default patterns |
 
 ### Redaction Patterns
 
 Built-in patterns: `email`, `phone`, `credit_card`, `ssn`, `api_key`
+
+You can also use custom regex patterns.
 
 ## Examples
 

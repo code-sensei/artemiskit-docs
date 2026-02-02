@@ -97,8 +97,11 @@ Run specific subsets of tests:
 # Run tests with specific tag
 akit run scenarios/ --tags regression
 
-# Multiple tags (OR logic)
-akit run scenarios/ --tags "smoke,quick"
+# Multiple tags (OR logic) - space-separated
+akit run scenarios/ --tags smoke quick
+
+# Or use repeated flags
+akit run scenarios/ --tags smoke --tags quick
 
 # Run all security-related tests
 akit run scenarios/ --tags security
