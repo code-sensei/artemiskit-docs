@@ -134,6 +134,60 @@ Progress: [████████████████████] 100%
 └───────────────────────────────────────────────────┘
 ```
 
+## Cost Estimation
+
+ArtemisKit estimates API costs based on token usage and model pricing data.
+
+### How It Works
+
+1. **Token Tracking**: Each request's prompt and completion tokens are tracked
+2. **Model Lookup**: Pricing data is retrieved for the model used
+3. **Calculation**: Cost = (prompt_tokens × prompt_rate) + (completion_tokens × completion_rate)
+
+### Supported Models
+
+| Provider | Models | Pricing Source |
+|----------|--------|----------------|
+| OpenAI | gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-4, gpt-3.5-turbo | OpenAI API pricing |
+| Anthropic | claude-3.5-sonnet, claude-3.5-haiku, claude-3-opus, claude-3-sonnet, claude-3-haiku | Anthropic API pricing |
+| Azure | Same as OpenAI | Azure OpenAI pricing |
+
+### Sample Pricing (per 1K tokens)
+
+| Model | Prompt | Completion |
+|-------|--------|------------|
+| gpt-4o-mini | $0.00015 | $0.0006 |
+| gpt-4o | $0.005 | $0.015 |
+| gpt-4-turbo | $0.01 | $0.03 |
+| claude-3.5-sonnet | $0.003 | $0.015 |
+| claude-3.5-haiku | $0.0008 | $0.004 |
+| claude-3-opus | $0.015 | $0.075 |
+
+### Unknown Models
+
+For models not in the pricing database, ArtemisKit uses conservative default estimates:
+- Prompt: $0.01 per 1K tokens
+- Completion: $0.03 per 1K tokens
+
+### Cost Report Example
+
+```
+│ COST ESTIMATION                                   │
+│ Estimated Total:    $2.50                         │
+│ Prompt Cost:        $0.75 (75,000 tokens)         │
+│ Completion Cost:    $1.75 (50,000 tokens)         │
+│ Model: gpt-4o-mini @ $0.15/$0.60 per 1M tokens    │
+```
+
+### Accuracy Notes
+
+- Estimates are based on publicly available pricing data
+- Actual costs may vary based on:
+  - Enterprise agreements
+  - Batch discounts
+  - Regional pricing differences
+- Always verify with your provider's billing dashboard for exact costs
+
 ## Rate Limiting
 
 When testing, be aware of provider rate limits:

@@ -46,7 +46,9 @@ Allow up to 10% regression before failing:
 akit compare ar-20260115-abc ar-20260118-def --threshold 0.1
 ```
 
-## Output
+## Output Formats
+
+### Terminal Output
 
 The compare command displays a formatted comparison table:
 
@@ -65,6 +67,28 @@ Baseline: ar-20260115-abc
 Current:  ar-20260118-def
 
 ✓ No regression detected
+```
+
+### HTML Report
+
+Generate a visual comparison report:
+
+```bash
+akit compare ar-baseline ar-current --html
+```
+
+The HTML report includes:
+- **Metrics Overview**: Side-by-side comparison cards for success rate, latency, tokens
+- **Change Summary**: Badges showing regressions, improvements, unchanged, new, removed cases
+- **Case Comparison Table**: Filterable list of all test cases with change indicators
+- **Response Diff**: Click any case to expand and view baseline vs current responses
+
+### JSON Output
+
+For programmatic access:
+
+```bash
+akit compare ar-baseline ar-current --json
 ```
 
 ### Delta Colors
@@ -112,6 +136,30 @@ Use in GitHub Actions to gate deployments:
   run: akit compare ${{ env.BASELINE_RUN_ID }} ${{ env.CURRENT_RUN_ID }} --threshold 0.05
 ```
 
+## Setting Regression Thresholds
+
+Choose thresholds based on your use case:
+
+| Threshold | Use Case | Description |
+|-----------|----------|-------------|
+| `0.01` (1%) | Production-critical | Strict, blocks small regressions |
+| `0.05` (5%) | Standard CI/CD | Default, reasonable tolerance |
+| `0.10` (10%) | Development branches | Lenient, catches major issues only |
+| `0.20` (20%) | Experimental features | Very lenient, major regressions only |
+
+### Example Threshold Selection
+
+```bash
+# Production deployment - strict
+akit compare $BASELINE $CURRENT --threshold 0.01
+
+# PR checks - standard
+akit compare $BASELINE $CURRENT --threshold 0.05
+
+# Feature branch - lenient
+akit compare $BASELINE $CURRENT --threshold 0.10
+```
+
 ## Baseline Strategies
 
 Configure baseline selection in your config:
@@ -123,6 +171,29 @@ ci:
   regressionThreshold: 0.05
   baselineStrategy: latest  # 'latest', 'tagged', or 'specific'
   baselineRunId: ar-20260115-abc  # For 'specific' strategy
+```
+
+### Baseline Strategy Options
+
+| Strategy | Description | Use Case |
+|----------|-------------|----------|
+| `latest` | Most recent passing run | Continuous improvement tracking |
+| `tagged` | Run with specific tag (e.g., `release-v1.0`) | Release comparisons |
+| `specific` | Fixed run ID | A/B testing, audits |
+
+### Finding Baselines
+
+Use the history command to find run IDs:
+
+```bash
+# List recent runs
+akit history
+
+# Filter by scenario
+akit history --scenario customer-support
+
+# Get the last successful run
+akit history --status passed --limit 1
 ```
 
 ## Error Handling

@@ -68,6 +68,108 @@ cases:
       name: "Alice"
 ```
 
+## Tags
+
+Tags allow you to organize and filter test cases. They can be defined at scenario or case level.
+
+### Defining Tags
+
+```yaml
+# Scenario-level tags (apply to all cases)
+name: customer-support
+tags: [production, critical]
+
+cases:
+  # Case-level tags (merged with scenario tags)
+  - id: greeting
+    prompt: "Hello"
+    tags: [smoke, quick]
+    expected:
+      type: contains
+      values: ["hello"]
+```
+
+### Filtering by Tags
+
+Run specific subsets of tests:
+
+```bash
+# Run tests with specific tag
+akit run scenarios/ --tags regression
+
+# Multiple tags (OR logic)
+akit run scenarios/ --tags "smoke,quick"
+
+# Run all security-related tests
+akit run scenarios/ --tags security
+```
+
+### Tag Naming Conventions
+
+Use consistent, meaningful tag names:
+
+| Category | Example Tags | Use Case |
+|----------|--------------|----------|
+| **Test Type** | `smoke`, `regression`, `e2e` | Test suite categorization |
+| **Priority** | `critical`, `high`, `low` | Importance-based filtering |
+| **Feature** | `auth`, `billing`, `search` | Feature area testing |
+| **Environment** | `production`, `staging`, `dev` | Environment-specific tests |
+| **Speed** | `quick`, `slow`, `stress` | Execution time filtering |
+| **Status** | `wip`, `flaky`, `stable` | Test reliability |
+
+### Tag Organization Strategies
+
+**1. Tiered Testing**
+
+```yaml
+# Fast smoke tests for CI
+cases:
+  - id: critical-flow
+    tags: [smoke, p0]
+    prompt: "..."
+
+# Comprehensive tests for nightly runs
+  - id: edge-case-123
+    tags: [regression, p2]
+    prompt: "..."
+```
+
+**2. Feature-Based**
+
+```yaml
+# Group by product area
+cases:
+  - id: auth-login
+    tags: [auth, security]
+    prompt: "..."
+
+  - id: billing-checkout
+    tags: [billing, payment]
+    prompt: "..."
+```
+
+**3. Compliance Testing**
+
+```yaml
+# Group by compliance requirement
+cases:
+  - id: pii-handling
+    tags: [gdpr, privacy, compliance]
+    prompt: "..."
+
+  - id: content-safety
+    tags: [safety, moderation, compliance]
+    prompt: "..."
+```
+
+### Best Practices
+
+1. **Keep tags lowercase** — Consistent casing prevents confusion
+2. **Use hyphens for multi-word** — `user-auth` not `userAuth` or `user_auth`
+3. **Limit tag count** — 3-5 tags per case is usually sufficient
+4. **Document tag meanings** — Maintain a tag glossary for your team
+5. **Review regularly** — Remove unused tags to prevent clutter
+
 ## Provider Config
 
 Override provider settings at the scenario level:
