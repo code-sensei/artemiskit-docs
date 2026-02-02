@@ -20,7 +20,9 @@ ArtemisKit is available as multiple packages:
 | Package | npm Name | Description |
 |---------|----------|-------------|
 | CLI | `@artemiskit/cli` | Command-line interface (`artemiskit`, `akit`) |
-| Core | `@artemiskit/core` | Core library (coming soon) |
+| Core | `@artemiskit/core` | Core library |
+| Reports | `@artemiskit/reports` | HTML/JSON report generation |
+| Red Team | `@artemiskit/redteam` | Security testing and mutations |
 
 ## Which Should I Use?
 
@@ -31,7 +33,7 @@ ArtemisKit is available as multiple packages:
     [Get started →](/docs/cli/getting-started/)
   </Card>
   <Card title="API (@artemiskit/core)" icon="puzzle">
-    For embedding evaluations in your own code, test frameworks (Jest, Vitest), or custom tooling. Coming in v0.2.0.
+    For embedding evaluations in your own code, test frameworks (Jest, Vitest), or custom tooling. SDK coming in v0.3.0.
     
     [Learn more →](/docs/api/)
   </Card>
@@ -52,4 +54,4 @@ akit run scenarios/hello-world.yaml
 - [CLI Documentation](/docs/cli/) — Get started with the CLI
 - [Providers](/docs/cli/providers/) — Configure LLM providers (OpenAI, Anthropic, Azure, Vercel AI)
 - [Storage](/docs/cli/storage/) — Store results locally or in Supabase
-- [API Documentation](/docs/api/) — Programmatic usage (coming soon)
+- [API Documentation](/docs/api/) — Programmatic SDK (coming in v0.3.0)
