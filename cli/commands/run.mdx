@@ -45,9 +45,25 @@ The `scenario` argument supports:
 
 ### Redaction Patterns
 
-Built-in patterns: `email`, `phone`, `credit_card`, `ssn`, `api_key`
+**Built-in patterns:**
+- `email` — Email addresses
+- `phone` — Phone numbers (various formats)
+- `credit_card` — Credit card numbers
+- `ssn` — Social Security Numbers
+- `api_key` — API keys (common formats)
+- `ipv4` — IPv4 addresses
+- `jwt` — JWT tokens
+- `aws_key` — AWS access keys
+- `secrets` — Generic secrets (password=, secret=, etc.)
 
-You can also use custom regex patterns.
+**Custom regex patterns:**
+
+Pass regex patterns as plain strings (without delimiters). The `g` flag is added automatically.
+
+```bash
+# Mix built-in and custom patterns
+akit run scenario.yaml --redact --redact-patterns email phone "\b[A-Z]{2}\d{6}\b"
+```
 
 ## Examples
 
