@@ -1,17 +1,17 @@
 ---
-title: Introduction to ArtemisKit
-description: Learn about ArtemisKit, the open-source LLM evaluation toolkit
+title: ArtemisKit Documentation
+description: Open-source LLM testing toolkit. Test, secure, and stress-test your AI applications with one CLI.
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-# Welcome to ArtemisKit
+# Ship AI You Trust
 
-ArtemisKit is an open-source toolkit for evaluating LLM applications. It provides systematic testing for:
+ArtemisKit is the open-source toolkit for testing LLM applications. One CLI. Three capabilities:
 
-- **Quality Assurance** — Test prompts and responses with scenario-based testing
-- **Security** — Red team your LLM for vulnerabilities
-- **Performance** — Stress test under load
+- **Test** — Evaluate outputs with scenario-based quality gates
+- **Secure** — Red team your LLM before attackers do
+- **Stress** — Know your latency limits before users find them
 
 ## Packages
 
@@ -24,22 +24,22 @@ ArtemisKit is available as multiple packages:
 | Reports | `@artemiskit/reports` | HTML/JSON report generation |
 | Red Team | `@artemiskit/redteam` | Security testing and mutations |
 
-## Which Should I Use?
+## Choose Your Path
 
 <CardGrid>
   <Card title="CLI (@artemiskit/cli)" icon="terminal">
-    Best for most users. Run evaluations from the command line, integrate with CI/CD, and generate reports.
+    Start here. Run evaluations from the terminal, integrate with CI/CD, generate reports. Most teams use this.
     
     [Get started →](/docs/cli/getting-started/)
   </Card>
   <Card title="API (@artemiskit/core)" icon="puzzle">
-    For embedding evaluations in your own code, test frameworks (Jest, Vitest), or custom tooling. SDK coming in v0.3.0.
+    Embed evaluations in your code, test frameworks (Jest, Vitest), or custom tooling. SDK coming in v0.3.0.
     
     [Learn more →](/docs/api/)
   </Card>
 </CardGrid>
 
-## Quick Example (CLI)
+## Try It Now
 
 ```bash
 # Install
@@ -49,9 +49,9 @@ npm install -g @artemiskit/cli
 akit run scenarios/hello-world.yaml
 ```
 
-## Next Steps
+## What's Next
 
-- [CLI Documentation](/docs/cli/) — Get started with the CLI
-- [Providers](/docs/cli/providers/) — Configure LLM providers (OpenAI, Anthropic, Azure, Vercel AI)
-- [Storage](/docs/cli/storage/) — Store results locally or in Supabase
-- [API Documentation](/docs/api/) — Programmatic SDK (coming in v0.3.0)
+- [CLI Overview](/docs/cli/) — Commands, options, configuration
+- [Providers](/docs/cli/providers/) — OpenAI, Anthropic, Azure, Vercel AI SDK
+- [Storage](/docs/cli/storage/) — Local or Supabase result storage
+- [API Reference](/docs/api/) — Programmatic SDK (v0.3.0)
