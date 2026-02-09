@@ -35,7 +35,7 @@ akit redteam <scenario-file> [options]
 | `--config` | | Path to config file | `artemis.config.yaml` |
 | `--redact` | | Enable PII/sensitive data redaction | `false` |
 | `--redact-patterns` | | Custom redaction patterns (space-separated) | Default patterns |
-| `--export` | | Export format: `markdown` | None |
+| `--export` | | Export format: `markdown` or `junit` | None |
 | `--export-output` | | Output directory for exports | `./artemis-exports` |
 
 ### Redaction Patterns
@@ -195,6 +195,37 @@ The markdown report includes:
 - Severity breakdown by vulnerability type
 - Detailed findings for each vulnerability
 - Recommendations for remediation
+
+### Export to JUnit XML
+
+Export results as JUnit XML for CI/CD integration:
+
+```bash
+# Export to default directory (./artemis-exports)
+akit redteam scenarios/chatbot.yaml --export junit
+
+# Export to custom directory
+akit redteam scenarios/chatbot.yaml --export junit --export-output ./test-results
+```
+
+The JUnit report treats security vulnerabilities as test failures:
+- Safe responses = passed tests
+- Unsafe responses = failed tests with severity info
+- Blocked responses = passed tests (content filter triggered)
+- Error responses = error tests
+
+**GitHub Actions example:**
+
+```yaml
+- name: Run security tests
+  run: akit redteam scenarios/chatbot.yaml --export junit --export-output ./security-results
+
+- name: Publish Security Results
+  uses: EnricoMi/publish-unit-test-result-action@v2
+  if: always()
+  with:
+    files: security-results/*.xml
+```
 
 ## Custom Attacks
 

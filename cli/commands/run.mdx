@@ -47,7 +47,7 @@ The `scenario` argument supports:
 | `--baseline` | | Compare against baseline and detect regression | `false` |
 | `--threshold` | | Regression threshold (0-1), e.g., 0.05 for 5% | `0.05` |
 | `--budget` | | Maximum budget in USD - fail if estimated cost exceeds | None |
-| `--export` | | Export format: `markdown` | None |
+| `--export` | | Export format: `markdown` or `junit` | None |
 | `--export-output` | | Output directory for exports | `./artemis-exports` |
 
 ### Redaction Patterns
@@ -255,6 +255,38 @@ The markdown report includes:
 - Detailed results for failed test cases
 - Configuration used for the run
 - Redaction summary (if enabled)
+
+### JUnit XML Export
+
+Export results as JUnit XML for CI/CD integration with Jenkins, GitHub Actions, GitLab CI, and other systems:
+
+```bash
+# Export to default directory (./artemis-exports)
+akit run scenarios/qa-test.yaml --export junit
+
+# Export to custom directory
+akit run scenarios/qa-test.yaml --export junit --export-output ./test-results
+```
+
+The JUnit XML includes:
+- Test suite metadata (run ID, provider, model, success rate)
+- Individual test cases with pass/fail status
+- Failure details with matcher type and expected values
+- System output with actual responses
+- Timing information for each test
+
+**GitHub Actions example:**
+
+```yaml
+- name: Run ArtemisKit tests
+  run: akit run scenarios/ --export junit --export-output ./test-results
+
+- name: Publish Test Results
+  uses: EnricoMi/publish-unit-test-result-action@v2
+  if: always()
+  with:
+    files: test-results/*.xml
+```
 
 ## Exit Codes
 

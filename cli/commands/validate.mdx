@@ -1,0 +1,252 @@
+---
+title: artemiskit validate
+description: Validate scenario files without running them
+---
+
+# artemiskit validate
+
+Validate scenario files for syntax errors, schema violations, and semantic issues without executing them against an LLM.
+
+## Synopsis
+
+```bash
+artemiskit validate <path> [options]
+akit validate <path> [options]
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `path` | Path to scenario file, directory, or glob pattern |
+
+The `path` argument supports:
+- **Single file**: `scenarios/test.yaml`
+- **Directory**: `scenarios/` (validates all `.yaml`/`.yml` files recursively)
+- **Glob pattern**: `scenarios/**/*.yaml` (matches pattern)
+
+## Options
+
+| Option | Short | Description | Default |
+|--------|-------|-------------|---------|
+| `--json` | | Output results as JSON | `false` |
+| `--strict` | | Treat warnings as errors | `false` |
+| `--quiet` | `-q` | Only output errors (no success messages) | `false` |
+| `--export` | | Export format: `junit` | None |
+| `--export-output` | | Output directory for exports | `./artemis-exports` |
+
+## Validation Levels
+
+The validator checks scenarios at multiple levels:
+
+### 1. YAML Syntax
+
+Validates that the file is valid YAML with proper formatting.
+
+**Example errors:**
+- Indentation errors
+- Missing colons
+- Invalid characters
+
+### 2. Schema Validation
+
+Validates that the scenario conforms to the ArtemisKit schema using Zod.
+
+**Example errors:**
+- Missing required fields (`name`, `cases`)
+- Invalid field types
+- Unknown/unrecognized fields
+- Invalid expectation types
+
+### 3. Semantic Validation
+
+Validates logical correctness of the scenario.
+
+**Example errors:**
+- Duplicate case IDs
+- Undefined variable references (e.g., `{{undefined_var}}`)
+
+### 4. Warnings
+
+Detects potential issues that don't prevent execution but may indicate problems.
+
+**Example warnings:**
+- Deprecated fields (e.g., `criteria` instead of `rubric`)
+- Missing `description` field
+- Large number of cases (suggests using `--parallel`)
+
+## Examples
+
+### Validate a Single File
+
+```bash
+akit validate scenarios/qa-test.yaml
+```
+
+Output:
+```
+Validating scenarios...
+
+✓ qa-test.yaml
+
+✓ 1 passed
+1 scenario(s) validated
+```
+
+### Validate a Directory
+
+```bash
+akit validate scenarios/
+```
+
+Output:
+```
+Validating scenarios...
+
+✓ qa-test.yaml
+✓ security-test.yaml
+⚠ legacy-test.yaml
+    Line 15: 'criteria' is deprecated, use 'rubric' instead (llm_grader)
+    Suggestion: Replace 'criteria' with 'rubric'
+
+✓ 2 passed, 1 with warnings
+3 scenario(s) validated
+```
+
+### Validate with Strict Mode
+
+Treat warnings as errors:
+
+```bash
+akit validate scenarios/ --strict
+```
+
+### JSON Output
+
+Get machine-readable JSON output:
+
+```bash
+akit validate scenarios/qa-test.yaml --json
+```
+
+Output:
+```json
+{
+  "valid": true,
+  "results": [
+    {
+      "file": "/path/to/scenarios/qa-test.yaml",
+      "valid": true,
+      "errors": [],
+      "warnings": []
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0,
+    "withWarnings": 0
+  }
+}
+```
+
+### Quiet Mode
+
+Only show errors (useful for CI):
+
+```bash
+akit validate scenarios/ --quiet
+```
+
+### CI/CD Integration with JUnit Export
+
+Export validation results as JUnit XML for CI systems like Jenkins, GitHub Actions, or GitLab CI:
+
+```bash
+akit validate scenarios/ --export junit --export-output ./test-results
+```
+
+This creates a JUnit XML file that CI systems can parse:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ArtemisKit Validation" tests="3" failures="1" errors="0" skipped="0">
+  <testcase classname="ArtemisKit Validation" name="/path/to/valid-scenario.yaml" time="0">
+  </testcase>
+  <testcase classname="ArtemisKit Validation" name="/path/to/invalid-scenario.yaml" time="0">
+    <failure message="Line 5: 'cases' must have at least 1 item(s)" type="validation">
+[schema-too_small] Line 5: 'cases' must have at least 1 item(s)
+    </failure>
+  </testcase>
+</testsuite>
+```
+
+**GitHub Actions example:**
+
+```yaml
+- name: Validate scenarios
+  run: akit validate scenarios/ --export junit --export-output ./test-results
+
+- name: Upload test results
+  uses: actions/upload-artifact@v4
+  if: always()
+  with:
+    name: validation-results
+    path: test-results/*.xml
+```
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | All scenarios are valid (no errors) |
+| 1 | One or more scenarios have validation errors |
+| 2 | No scenario files found matching the path |
+
+## Use Cases
+
+### Pre-commit Hook
+
+Add validation to your pre-commit hooks to catch errors early:
+
+```bash
+#!/bin/bash
+# .git/hooks/pre-commit
+
+akit validate scenarios/ --quiet
+if [ $? -ne 0 ]; then
+  echo "Scenario validation failed. Please fix errors before committing."
+  exit 1
+fi
+```
+
+### CI Pipeline Validation
+
+Validate scenarios as part of your CI pipeline before running actual tests:
+
+```yaml
+# GitHub Actions
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ArtemisKit
+        run: bun add -g @artemiskit/cli
+      - name: Validate scenarios
+        run: akit validate scenarios/ --strict --export junit
+```
+
+### IDE Integration
+
+Use JSON output for IDE/editor integration:
+
+```bash
+akit validate scenarios/test.yaml --json 2>/dev/null | jq '.results[0].errors'
+```
+
+## See Also
+
+- [Scenario Format](/docs/cli/scenarios/format/)
+- [Expectations](/docs/cli/scenarios/expectations/)
+- [Run Command](/docs/cli/commands/run/)
