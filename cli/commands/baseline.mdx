@@ -1,0 +1,302 @@
+---
+title: artemiskit baseline
+description: Manage baseline runs for regression detection
+---
+
+# artemiskit baseline
+
+Manage baseline runs for regression detection. Baselines allow you to track expected performance and detect regressions when metrics drop below acceptable thresholds.
+
+## Synopsis
+
+```bash
+artemiskit baseline <subcommand> [options]
+akit baseline <subcommand> [options]
+```
+
+## Subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| `set` | Set a run as the baseline for a scenario |
+| `list` | List all configured baselines |
+| `get` | Get baseline details for a specific scenario |
+| `remove` | Remove a baseline |
+
+---
+
+## baseline set
+
+Set a run as the baseline for regression comparison.
+
+### Synopsis
+
+```bash
+akit baseline set <run-id> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `run-id` | The run ID to set as baseline (from `akit history`) |
+
+### Options
+
+| Option | Short | Description | Default |
+|--------|-------|-------------|---------|
+| `--scenario` | `-s` | Override scenario name | From run manifest |
+| `--tag` | `-t` | Optional tag/description for the baseline | None |
+| `--config` | | Path to config file | `artemis.config.yaml` |
+
+### Examples
+
+```bash
+# Set baseline from a specific run
+akit baseline set abc123def456
+
+# Set baseline with a tag
+akit baseline set abc123def456 --tag "v1.0.0-release"
+
+# Override scenario name
+akit baseline set abc123def456 --scenario "qa-regression-suite"
+```
+
+### Output
+
+```
+✔ Baseline created
+
+  Scenario:     qa-test
+  Run ID:       abc123def456
+  Success Rate: 95.0%
+  Test Cases:   19/20 passed
+  Tag:          v1.0.0-release
+
+Future runs of this scenario will be compared against this baseline.
+```
+
+---
+
+## baseline list
+
+List all configured baselines.
+
+### Synopsis
+
+```bash
+akit baseline list [options]
+```
+
+### Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--config` | Path to config file | `artemis.config.yaml` |
+| `--json` | Output as JSON | `false` |
+
+### Examples
+
+```bash
+# List all baselines
+akit baseline list
+
+# Output as JSON
+akit baseline list --json
+```
+
+### Output
+
+```
+╔════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                          BASELINES                                          ║
+╠════════════════════════════════════════════════════════════════════════════════════════════╣
+║ Scenario                       Run ID            Success Rate          Created              Tag ║
+╟────────────────────────────────────────────────────────────────────────────────────────────╢
+║ qa-test                        abc123def456            95.0%   1/15/2026 10:30 AM    v1.0.0 ║
+║ security-scan                  xyz789uvw123            88.5%   1/14/2026 3:45 PM          - ║
+╚════════════════════════════════════════════════════════════════════════════════════════════╝
+
+2 baselines configured
+```
+
+---
+
+## baseline get
+
+Get baseline details by run ID or scenario name.
+
+### Synopsis
+
+```bash
+akit baseline get <identifier> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `identifier` | Run ID of the baseline (or scenario name with `--scenario`) |
+
+### Options
+
+| Option | Short | Description | Default |
+|--------|-------|-------------|---------|
+| `--scenario` | `-s` | Treat identifier as scenario name instead of run ID | `false` |
+| `--config` | | Path to config file | `artemis.config.yaml` |
+| `--json` | | Output as JSON | `false` |
+
+### Examples
+
+```bash
+# Get baseline by run ID (default)
+akit baseline get abc123def456
+
+# Get baseline by scenario name
+akit baseline get "qa-test" --scenario
+
+# Output as JSON
+akit baseline get abc123def456 --json
+```
+
+### Output
+
+```
+Baseline: qa-test
+
+  Run ID:       abc123def456
+  Created:      1/15/2026, 10:30:00 AM
+  Success Rate: 95.0%
+  Test Cases:   19/20
+  Latency:      150ms (median)
+  Tokens:       12,500
+  Tag:          v1.0.0-release
+```
+
+---
+
+## baseline remove
+
+Remove a baseline by run ID or scenario name.
+
+### Synopsis
+
+```bash
+akit baseline remove <identifier> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `identifier` | Run ID of the baseline to remove (or scenario name with `--scenario`) |
+
+### Options
+
+| Option | Short | Description | Default |
+|--------|-------|-------------|---------|
+| `--scenario` | `-s` | Treat identifier as scenario name instead of run ID | `false` |
+| `--force` | `-f` | Skip confirmation prompt | `false` |
+| `--config` | | Path to config file | `artemis.config.yaml` |
+
+### Examples
+
+```bash
+# Remove baseline by run ID (with confirmation)
+akit baseline remove abc123def456
+
+# Remove baseline by scenario name
+akit baseline remove "qa-test" --scenario
+
+# Force remove without confirmation
+akit baseline remove abc123def456 --force
+```
+
+---
+
+## Using Baselines in CI/CD
+
+### Workflow Example
+
+1. **Establish a baseline** after a successful release:
+
+```bash
+# Run tests and save results
+akit run scenarios/qa-test.yaml --save
+
+# Check history to get the run ID
+akit history
+
+# Set this run as the baseline
+akit baseline set abc123def456 --tag "v1.0.0"
+```
+
+2. **Run tests with baseline comparison** in CI:
+
+```bash
+# Compare against baseline, fail if regression detected
+akit run scenarios/qa-test.yaml --ci --baseline --threshold 0.05
+```
+
+3. **Update baseline** when expected behavior changes:
+
+```bash
+# After intentional changes, update the baseline
+akit baseline set new_run_id --tag "v1.1.0"
+```
+
+### GitHub Actions Example
+
+```yaml
+name: LLM Evaluation
+
+on: [push, pull_request]
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: oven-sh/setup-bun@v1
+      
+      - run: bun install
+      
+      - name: Run LLM Evaluation
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          bunx artemiskit run scenarios/ --ci --baseline --threshold 0.05
+```
+
+### GitLab CI Example
+
+```yaml
+llm-evaluation:
+  stage: test
+  script:
+    - bunx artemiskit run scenarios/ --ci --baseline --threshold 0.05
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+```
+
+---
+
+## Storage
+
+Baselines are stored in the `.artemis/baselines.json` file within your configured storage directory (default: `artemis-runs/.artemis/baselines.json`).
+
+Each baseline stores:
+- Scenario name
+- Run ID reference
+- Creation timestamp
+- Key metrics (success rate, latency, tokens, case counts)
+- Optional tag
+
+---
+
+## See Also
+
+- [Run Command](/docs/cli/commands/run/) - Execute scenarios with baseline comparison
+- [History Command](/docs/cli/commands/history/) - View past runs to select baselines
+- [Compare Command](/docs/cli/commands/compare/) - Manual comparison of two runs

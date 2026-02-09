@@ -42,6 +42,10 @@ The `scenario` argument supports:
 | `--config` | | Path to config file | `artemis.config.yaml` |
 | `--redact` | | Enable PII/sensitive data redaction | `false` |
 | `--redact-patterns` | | Custom redaction patterns (space-separated) | Default patterns |
+| `--ci` | | CI mode: machine-readable output, no colors/spinners | `false` |
+| `--summary` | | Summary output format: `json`, `text`, or `security` | `text` |
+| `--baseline` | | Compare against baseline and detect regression | `false` |
+| `--threshold` | | Regression threshold (0-1), e.g., 0.05 for 5% | `0.05` |
 
 ### Redaction Patterns
 
@@ -143,12 +147,76 @@ With specific patterns:
 akit run scenarios/qa-test.yaml --redact --redact-patterns email phone api_key
 ```
 
+### CI/CD Integration
+
+ArtemisKit provides several options for CI/CD pipeline integration:
+
+**CI Mode:**
+
+```bash
+# Machine-readable output, no colors or spinners
+akit run scenarios/ --ci
+```
+
+CI mode outputs environment variable-style results:
+```
+ARTEMISKIT_RESULT=PASS
+ARTEMISKIT_SCENARIOS_TOTAL=5
+ARTEMISKIT_SCENARIOS_PASSED=5
+ARTEMISKIT_CASES_TOTAL=25
+ARTEMISKIT_CASES_PASSED=24
+ARTEMISKIT_CASES_FAILED=1
+ARTEMISKIT_SUCCESS_RATE=96.0
+ARTEMISKIT_DURATION_MS=12345
+```
+
+**JSON Summary:**
+
+```bash
+# Get full JSON summary for parsing
+akit run scenarios/ --summary json
+```
+
+**Security Summary:**
+
+```bash
+# Get security-focused summary for compliance reporting
+akit run scenarios/ --summary security
+```
+
+### Baseline Comparison
+
+Compare runs against a baseline to detect regressions:
+
+```bash
+# First, set a baseline
+akit baseline set <run-id>
+
+# Then run with baseline comparison
+akit run scenarios/qa-test.yaml --baseline
+```
+
+With custom threshold (10% regression tolerance):
+
+```bash
+akit run scenarios/qa-test.yaml --baseline --threshold 0.10
+```
+
+**In CI pipelines:**
+
+```bash
+# CI mode with baseline comparison
+akit run scenarios/ --ci --baseline --threshold 0.05
+```
+
+If a regression is detected (success rate drops more than the threshold), the command exits with code 1.
+
 ## Exit Codes
 
 | Code | Meaning |
 |------|---------|
-| 0 | All test cases passed |
-| 1 | One or more test cases failed |
+| 0 | All test cases passed (and no regression if `--baseline` used) |
+| 1 | One or more test cases failed, or regression detected |
 | 2 | Configuration or runtime error |
 
 ## Output
