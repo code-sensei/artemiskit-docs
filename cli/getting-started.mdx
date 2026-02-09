@@ -145,9 +145,20 @@ Now you can run scenarios without specifying provider/model each time:
 akit run hello-world.yaml
 ```
 
+## Step 7: Validate Before Running (Optional)
+
+Before running scenarios, you can validate them for syntax errors:
+
+```bash
+akit validate hello-world.yaml
+```
+
+This checks for YAML syntax errors, schema violations, and semantic issues without calling the LLM.
+
 ## What's Next
 
 - [Scenario Format](/docs/cli/scenarios/format/) — Full YAML schema reference
 - [Expectations](/docs/cli/scenarios/expectations/) — All evaluator types
+- [Validate Command](/docs/cli/commands/validate/) — Pre-flight scenario validation
 - [Commands](/docs/cli/commands/run/) — CLI options and flags
-- [CI/CD Integration](/docs/cli/ci-cd/) — GitHub Actions, GitLab CI
+- [CI/CD Integration](/docs/cli/ci-cd/) — GitHub Actions, GitLab CI, JUnit export

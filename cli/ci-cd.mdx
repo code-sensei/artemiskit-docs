@@ -5,11 +5,24 @@ description: Integrate ArtemisKit into your CI/CD pipeline
 
 # CI/CD Integration
 
-Automate LLM evaluation as part of your deployment pipeline.
+Automate LLM evaluation as part of your deployment pipeline. ArtemisKit provides CI-friendly output formats, JUnit XML export, and validation tools.
+
+## Quick Start
+
+```bash
+# Validate scenarios first (fail fast)
+akit validate scenarios/ --strict
+
+# Run tests with JUnit export for CI platforms
+akit run scenarios/ --ci --export junit --export-output ./test-results
+
+# Run security tests
+akit redteam scenarios/chatbot.yaml --export junit --export-output ./security-results
+```
 
 ## GitHub Actions
 
-### Basic Workflow
+### Basic Workflow with JUnit Reports
 
 ```yaml
 # .github/workflows/llm-evaluation.yml
@@ -27,24 +40,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        
       - name: Install ArtemisKit
-        run: npm install -g @artemiskit/cli
+        run: bun add -g @artemiskit/cli
+        
+      - name: Validate Scenarios
+        run: akit validate scenarios/ --strict --export junit --export-output ./validation-results
         
       - name: Run Evaluation
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: akit run scenarios/regression.yaml --save
+        run: akit run scenarios/ --ci --export junit --export-output ./test-results
         
-      - name: Upload Results
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: |
+            validation-results/*.xml
+            test-results/*.xml
+            
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: evaluation-results
-          path: artemis-output/
+          path: |
+            validation-results/
+            test-results/
 ```
 
 ### With Regression Detection
@@ -141,5 +166,8 @@ llm-evaluation:
 
 ## See Also
 
-- [Compare Command](/docs/cli/commands/compare/)
-- [Run Command](/docs/cli/commands/run/)
+- [Validate Command](/docs/cli/commands/validate/) — Pre-flight scenario validation
+- [Run Command](/docs/cli/commands/run/) — Execute scenarios with JUnit export
+- [Red Team Command](/docs/cli/commands/redteam/) — Security testing with JUnit export
+- [Compare Command](/docs/cli/commands/compare/) — Compare runs for regression
+- [Baseline Command](/docs/cli/commands/baseline/) — Manage baselines for regression detection
