@@ -35,6 +35,8 @@ akit redteam <scenario-file> [options]
 | `--config` | | Path to config file | `artemis.config.yaml` |
 | `--redact` | | Enable PII/sensitive data redaction | `false` |
 | `--redact-patterns` | | Custom redaction patterns (space-separated) | Default patterns |
+| `--export` | | Export format: `markdown` | None |
+| `--export-output` | | Output directory for exports | `./artemis-exports` |
 
 ### Redaction Patterns
 
@@ -175,6 +177,24 @@ Test with custom conversation contexts (scenario uses array prompt format):
 ```bash
 akit redteam scenarios/social-engineering-tests.yaml --mutations multi-turn
 ```
+
+### Export Security Report to Markdown
+
+Generate a compliance-ready markdown report:
+
+```bash
+# Export to default directory (./artemis-exports)
+akit redteam scenarios/chatbot.yaml --export markdown
+
+# Export to custom directory
+akit redteam scenarios/chatbot.yaml --export markdown --export-output ./security-reports
+```
+
+The markdown report includes:
+- Security summary with defense rate and risk level
+- Severity breakdown by vulnerability type
+- Detailed findings for each vulnerability
+- Recommendations for remediation
 
 ## Custom Attacks
 

@@ -21,6 +21,7 @@ akit history [options]
 | `-p, --project <project>` | Filter by project name | — |
 | `-s, --scenario <scenario>` | Filter by scenario name | — |
 | `-l, --limit <number>` | Limit number of results | `20` |
+| `--show-cost` | Show cost column and total | `false` |
 | `--config <path>` | Path to config file | `artemis.config.yaml` |
 
 ## Examples
@@ -49,6 +50,14 @@ akit history --scenario auth-tests
 akit history --project my-project --scenario qa-suite --limit 10
 ```
 
+### Show Cost Information
+
+Display estimated costs for each run and a total:
+
+```bash
+akit history --show-cost
+```
+
 ## Output
 
 The history command displays runs in a formatted table:
@@ -66,6 +75,26 @@ The history command displays runs in a formatted table:
 
 Showing 3 runs (limit: 20)
 ```
+
+### With Cost Column
+
+When using `--show-cost`, the table includes a cost column and total:
+
+```
+╔═════════════════════════════════════════════════════════════════════════════════════════╗
+║                                       RUN HISTORY                                       ║
+╠═════════════════════════════════════════════════════════════════════════════════════════╣
+║ Run ID           Scenario                  Success Rate       Cost                 Date ║
+╟─────────────────────────────────────────────────────────────────────────────────────────╢
+║ ar-20260118-abc  auth-tests                       95.0%    $0.0234    1/18/2026 10:30 AM ║
+║ ar-20260117-def  qa-suite                         88.5%    $0.0156    1/17/2026 2:22 PM  ║
+║ ar-20260117-ghi  stress-test                     100.0%    $0.0089    1/17/2026 9:15 AM  ║
+╟─────────────────────────────────────────────────────────────────────────────────────────╢
+║                                                              Total: $0.0479             ║
+╚═════════════════════════════════════════════════════════════════════════════════════════╝
+```
+
+Runs without cost data (pre-v0.2.3) show "-" in the cost column.
 
 ### Success Rate Colors
 

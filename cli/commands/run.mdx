@@ -46,6 +46,9 @@ The `scenario` argument supports:
 | `--summary` | | Summary output format: `json`, `text`, or `security` | `text` |
 | `--baseline` | | Compare against baseline and detect regression | `false` |
 | `--threshold` | | Regression threshold (0-1), e.g., 0.05 for 5% | `0.05` |
+| `--budget` | | Maximum budget in USD - fail if estimated cost exceeds | None |
+| `--export` | | Export format: `markdown` | None |
+| `--export-output` | | Output directory for exports | `./artemis-exports` |
 
 ### Redaction Patterns
 
@@ -210,6 +213,48 @@ akit run scenarios/ --ci --baseline --threshold 0.05
 ```
 
 If a regression is detected (success rate drops more than the threshold), the command exits with code 1.
+
+### Cost Tracking and Budget
+
+ArtemisKit automatically estimates costs based on token usage. Use `--budget` to enforce cost limits:
+
+```bash
+# Fail if estimated cost exceeds $1.00
+akit run scenarios/ --budget 1.00
+```
+
+Cost is displayed in the summary output:
+
+```
+Results: 10/10 passed (100%)
+Tokens: 15,234 (prompt: 12,000, completion: 3,234)
+Estimated Cost: $0.0234
+```
+
+**In CI pipelines with budget enforcement:**
+
+```bash
+# Fail the pipeline if costs exceed budget
+akit run scenarios/ --ci --budget 5.00
+```
+
+### Markdown Export
+
+Export results to markdown format for documentation, compliance reports, or audit trails:
+
+```bash
+# Export to default directory (./artemis-exports)
+akit run scenarios/qa-test.yaml --export markdown
+
+# Export to custom directory
+akit run scenarios/qa-test.yaml --export markdown --export-output ./compliance-reports
+```
+
+The markdown report includes:
+- Summary table with pass/fail rates, latency, and cost metrics
+- Detailed results for failed test cases
+- Configuration used for the run
+- Redaction summary (if enabled)
 
 ## Exit Codes
 

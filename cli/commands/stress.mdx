@@ -36,6 +36,7 @@ akit stress <scenario-file> [options]
 | `--config` | | Path to config file | `artemis.config.yaml` |
 | `--redact` | | Enable PII/sensitive data redaction | `false` |
 | `--redact-patterns` | | Custom redaction patterns (space-separated) | Default patterns |
+| `--budget` | | Maximum budget in USD - fail if exceeded | None |
 
 ### Redaction Patterns
 
@@ -100,6 +101,17 @@ Gradually increase load over 30 seconds:
 ```bash
 akit stress scenarios/chatbot.yaml -c 100 --ramp-up 30
 ```
+
+### With Budget Limit
+
+Fail if estimated cost exceeds a threshold:
+
+```bash
+# Fail if cost exceeds $5.00
+akit stress scenarios/chatbot.yaml --budget 5.00
+```
+
+This is useful in CI/CD pipelines to prevent runaway costs during load testing.
 
 ## Metrics
 
