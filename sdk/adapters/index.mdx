@@ -1,0 +1,177 @@
+---
+title: Agentic Adapters
+description: Test LangChain chains/agents and DeepAgents multi-agent systems with ArtemisKit
+---
+
+import { Aside, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Agentic Adapters
+
+ArtemisKit provides specialized adapters for testing agentic AI systems built with LangChain and DeepAgents.
+
+<Aside type="tip">
+  Agentic adapters capture execution traces, tool calls, and inter-agent communication for comprehensive testing.
+</Aside>
+
+## Available Adapters
+
+<CardGrid>
+  <Card title="LangChain Adapter" icon="puzzle">
+    Test chains, agents, and runnables built with LangChain.js. Supports LCEL, ReAct agents, RAG chains, and more.
+
+    [Learn more →](/docs/sdk/adapters/langchain/)
+  </Card>
+  <Card title="DeepAgents Adapter" icon="rocket">
+    Test multi-agent systems built with DeepAgents. Supports sequential, parallel, and hierarchical workflows.
+
+    [Learn more →](/docs/sdk/adapters/deepagents/)
+  </Card>
+</CardGrid>
+
+## Installation
+
+<Tabs>
+  <TabItem label="LangChain">
+    ```bash
+    bun add @artemiskit/adapter-langchain
+    # or
+    npm install @artemiskit/adapter-langchain
+    ```
+  </TabItem>
+  <TabItem label="DeepAgents">
+    ```bash
+    bun add @artemiskit/adapter-deepagents
+    # or
+    npm install @artemiskit/adapter-deepagents
+    ```
+  </TabItem>
+</Tabs>
+
+## Quick Comparison
+
+| Feature | LangChain | DeepAgents |
+|---------|-----------|------------|
+| **System Type** | Chains, Agents, Runnables | Multi-agent teams, hierarchies |
+| **Execution** | Single-agent or chain flow | Multi-agent collaboration |
+| **Tool Tracking** | Intermediate steps | Cross-agent tool usage |
+| **Communication** | Chain input/output | Inter-agent messages |
+| **Streaming** | Via `stream()` method | Via `stream()` method |
+
+## Common Patterns
+
+### Testing Agent Tool Usage
+
+Both adapters capture tool call information for verification:
+
+```typescript
+import { createLangChainAdapter } from '@artemiskit/adapter-langchain';
+
+const adapter = createLangChainAdapter(myAgent, {
+  name: 'tool-agent',
+  captureIntermediateSteps: true,
+});
+
+const result = await adapter.generate({
+  prompt: 'Search for weather in New York',
+});
+
+// Verify tools were used correctly
+const metadata = result.raw.metadata;
+expect(metadata.toolsUsed).toContain('web_search');
+expect(metadata.totalToolCalls).toBeGreaterThan(0);
+```
+
+### Testing Multi-Agent Workflows
+
+```typescript
+import { createDeepAgentsAdapter } from '@artemiskit/adapter-deepagents';
+
+const adapter = createDeepAgentsAdapter(myTeam, {
+  name: 'content-team',
+  captureTraces: true,
+  captureMessages: true,
+});
+
+const result = await adapter.generate({
+  prompt: 'Research and write an article',
+});
+
+// Verify agent collaboration
+const metadata = result.raw.metadata;
+expect(metadata.agentsInvolved).toEqual(['researcher', 'writer']);
+expect(metadata.totalMessages).toBeGreaterThan(0);
+```
+
+### Using with ArtemisKit Scenarios
+
+Create YAML scenarios for agentic testing:
+
+```yaml
+# agentic-test.yaml
+name: agent-quality-test
+description: Test agent response quality
+
+cases:
+  - id: tool-usage
+    prompt: "Calculate 25 * 4 using the calculator"
+    expected:
+      type: contains
+      values: ["100"]
+    tags: [tool-test]
+
+  - id: multi-step
+    prompt: "Search for today's weather and summarize it"
+    expected:
+      type: llm_grader
+      criteria: "Response includes current weather information"
+      minScore: 0.8
+    tags: [integration]
+```
+
+Run with ArtemisKit:
+
+```typescript
+import { ArtemisKit } from '@artemiskit/sdk';
+import { createLangChainAdapter } from '@artemiskit/adapter-langchain';
+
+const adapter = createLangChainAdapter(myAgent);
+const kit = new ArtemisKit({
+  adapter,
+  project: 'agent-testing',
+});
+
+const results = await kit.run({
+  scenario: './agentic-test.yaml',
+});
+
+console.log(`Pass rate: ${results.manifest.metrics.pass_rate * 100}%`);
+```
+
+## Execution Metadata
+
+Both adapters provide rich execution metadata:
+
+| Field | Description |
+|-------|-------------|
+| `agentsInvolved` | List of agents that participated |
+| `totalAgentCalls` | Number of agent invocations |
+| `totalToolCalls` | Total tool/function calls |
+| `toolsUsed` | Unique tools that were used |
+| `traces` | Full execution trace (if enabled) |
+| `messages` | Inter-agent messages (if enabled) |
+| `executionTimeMs` | Total execution time |
+
+## Best Practices
+
+1. **Enable tracing in development** — Use `captureTraces: true` for debugging
+2. **Set appropriate timeouts** — Multi-agent systems can take longer
+3. **Test tool usage** — Verify agents use tools correctly
+4. **Test failure paths** — Ensure graceful handling of tool errors
+5. **Monitor costs** — Multi-agent systems can make many LLM calls
+
+## See Also
+
+- [LangChain Adapter](/docs/sdk/adapters/langchain/) — Full LangChain documentation
+- [DeepAgents Adapter](/docs/sdk/adapters/deepagents/) — Full DeepAgents documentation
+- [SDK Overview](/docs/sdk/) — ArtemisKit SDK documentation
+- [Test Matchers](/docs/sdk/matchers/) — Jest/Vitest matchers

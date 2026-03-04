@@ -1,0 +1,434 @@
+---
+title: Test Matchers
+description: Jest and Vitest matchers for LLM testing with ArtemisKit
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Test Matchers
+
+ArtemisKit provides custom matchers for Jest and Vitest to make LLM testing seamless in your test suites.
+
+<Aside type="tip">
+  These matchers work with ArtemisKit's `run()`, `redteam()`, and `stress()` results, giving you expressive assertions for LLM quality testing.
+</Aside>
+
+## Installation
+
+The matchers are included in the SDK package:
+
+```bash
+bun add @artemiskit/sdk
+# or
+npm install @artemiskit/sdk
+```
+
+## Setup
+
+<Tabs>
+  <TabItem label="Jest">
+    ```typescript
+    // jest.setup.ts or in your test file
+    import { jestMatchers } from '@artemiskit/sdk/jest';
+
+    expect.extend(jestMatchers);
+    ```
+  </TabItem>
+  <TabItem label="Vitest">
+    ```typescript
+    // vitest.setup.ts or in your test file
+    import { vitestMatchers } from '@artemiskit/sdk/vitest';
+    import { expect } from 'vitest';
+
+    expect.extend(vitestMatchers);
+    ```
+  </TabItem>
+</Tabs>
+
+### TypeScript Setup
+
+For full TypeScript support, extend the matcher types:
+
+<Tabs>
+  <TabItem label="Jest">
+    ```typescript
+    // jest.d.ts or in your test file
+    declare global {
+      namespace jest {
+        interface Matchers<R> {
+          toPassAllCases(): R;
+          toHaveSuccessRate(rate: number): R;
+          toPassCasesWithTag(tag: string): R;
+          toHaveMedianLatencyBelow(ms: number): R;
+          toHaveP95LatencyBelow(ms: number): R;
+          toPassRedTeam(): R;
+          toHaveDefenseRate(rate: number): R;
+          toHaveNoCriticalVulnerabilities(): R;
+          toHaveNoHighSeverityVulnerabilities(): R;
+          toPassStressTest(): R;
+          toHaveStressSuccessRate(rate: number): R;
+          toAchieveRPS(rps: number): R;
+          toHaveStressP95LatencyBelow(ms: number): R;
+        }
+      }
+    }
+    ```
+  </TabItem>
+  <TabItem label="Vitest">
+    ```typescript
+    // vitest.d.ts or in your test file
+    declare module 'vitest' {
+      interface Assertion<T = any> {
+        toPassAllCases(): void;
+        toHaveSuccessRate(rate: number): void;
+        toPassCasesWithTag(tag: string): void;
+        toHaveMedianLatencyBelow(ms: number): void;
+        toHaveP95LatencyBelow(ms: number): void;
+        toPassRedTeam(): void;
+        toHaveDefenseRate(rate: number): void;
+        toHaveNoCriticalVulnerabilities(): void;
+        toHaveNoHighSeverityVulnerabilities(): void;
+        toPassStressTest(): void;
+        toHaveStressSuccessRate(rate: number): void;
+        toAchieveRPS(rps: number): void;
+        toHaveStressP95LatencyBelow(ms: number): void;
+      }
+    }
+    ```
+  </TabItem>
+</Tabs>
+
+## Available Matchers
+
+### Run Test Matchers
+
+Use these with results from `kit.run()`:
+
+| Matcher | Description |
+|---------|-------------|
+| `toPassAllCases()` | All test cases passed |
+| `toHaveSuccessRate(rate)` | Achieve minimum success rate (0-1) |
+| `toPassCasesWithTag(tag)` | All cases with specified tag passed |
+| `toHaveMedianLatencyBelow(ms)` | Median latency under threshold |
+| `toHaveP95LatencyBelow(ms)` | P95 latency under threshold |
+
+### Red Team Matchers
+
+Use these with results from `kit.redteam()`:
+
+| Matcher | Description |
+|---------|-------------|
+| `toPassRedTeam()` | No vulnerabilities found |
+| `toHaveDefenseRate(rate)` | Achieve minimum defense rate (0-1) |
+| `toHaveNoCriticalVulnerabilities()` | No critical severity issues |
+| `toHaveNoHighSeverityVulnerabilities()` | No high or critical severity issues |
+
+### Stress Test Matchers
+
+Use these with results from `kit.stress()`:
+
+| Matcher | Description |
+|---------|-------------|
+| `toPassStressTest()` | Stress test passed overall |
+| `toHaveStressSuccessRate(rate)` | Achieve minimum success rate under load |
+| `toAchieveRPS(rps)` | Achieve minimum requests per second |
+| `toHaveStressP95LatencyBelow(ms)` | P95 latency under threshold |
+
+## Examples
+
+### Basic Quality Testing
+
+<Tabs>
+  <TabItem label="Jest">
+    ```typescript
+    import { ArtemisKit } from '@artemiskit/sdk';
+    import { jestMatchers } from '@artemiskit/sdk/jest';
+
+    expect.extend(jestMatchers);
+
+    describe('LLM Quality Tests', () => {
+      let kit: ArtemisKit;
+
+      beforeAll(() => {
+        kit = new ArtemisKit({
+          provider: 'openai',
+          model: 'gpt-4o-mini',
+          project: 'jest-tests',
+        });
+      });
+
+      it('should pass all test cases', async () => {
+        const results = await kit.run({
+          scenario: './scenarios/quality.yaml',
+        });
+
+        expect(results).toPassAllCases();
+      }, 60000);
+
+      it('should achieve 90% success rate', async () => {
+        const results = await kit.run({
+          scenario: './scenarios/quality.yaml',
+        });
+
+        expect(results).toHaveSuccessRate(0.9);
+      }, 60000);
+
+      it('should have acceptable latency', async () => {
+        const results = await kit.run({
+          scenario: './scenarios/quality.yaml',
+        });
+
+        expect(results).toHaveMedianLatencyBelow(5000);
+        expect(results).toHaveP95LatencyBelow(10000);
+      }, 60000);
+    });
+    ```
+  </TabItem>
+  <TabItem label="Vitest">
+    ```typescript
+    import { ArtemisKit } from '@artemiskit/sdk';
+    import { vitestMatchers } from '@artemiskit/sdk/vitest';
+    import { beforeAll, describe, expect, test } from 'vitest';
+
+    expect.extend(vitestMatchers);
+
+    describe('LLM Quality Tests', () => {
+      let kit: ArtemisKit;
+
+      beforeAll(() => {
+        kit = new ArtemisKit({
+          provider: 'openai',
+          model: 'gpt-4o-mini',
+          project: 'vitest-tests',
+        });
+      });
+
+      test('should pass all test cases', async () => {
+        const results = await kit.run({
+          scenario: './scenarios/quality.yaml',
+        });
+
+        expect(results).toPassAllCases();
+      }, 60000);
+
+      test('should achieve 90% success rate', async () => {
+        const results = await kit.run({
+          scenario: './scenarios/quality.yaml',
+        });
+
+        expect(results).toHaveSuccessRate(0.9);
+      }, 60000);
+    });
+    ```
+  </TabItem>
+</Tabs>
+
+### Tag-Based Testing
+
+```typescript
+it('should pass critical test cases', async () => {
+  const results = await kit.run({
+    scenario: './scenarios/quality.yaml',
+    tags: ['critical'],
+  });
+
+  expect(results).toPassCasesWithTag('critical');
+});
+
+it('should pass smoke tests', async () => {
+  const results = await kit.run({
+    scenario: './scenarios/quality.yaml',
+    tags: ['smoke'],
+  });
+
+  expect(results).toPassCasesWithTag('smoke');
+  expect(results).toHaveMedianLatencyBelow(2000);
+});
+```
+
+### Security Testing
+
+```typescript
+describe('Security Tests', () => {
+  it('should pass red team testing', async () => {
+    const results = await kit.redteam({
+      scenario: './scenarios/quality.yaml',
+      mutations: ['typo', 'role-spoof', 'encoding'],
+      countPerCase: 5,
+    });
+
+    expect(results).toPassRedTeam();
+  }, 120000);
+
+  it('should maintain 95% defense rate', async () => {
+    const results = await kit.redteam({
+      scenario: './scenarios/quality.yaml',
+      mutations: ['typo', 'role-spoof', 'instruction-flip'],
+      countPerCase: 10,
+    });
+
+    expect(results).toHaveDefenseRate(0.95);
+  }, 120000);
+
+  it('should have no critical vulnerabilities', async () => {
+    const results = await kit.redteam({
+      scenario: './scenarios/quality.yaml',
+      countPerCase: 5,
+    });
+
+    expect(results).toHaveNoCriticalVulnerabilities();
+    expect(results).toHaveNoHighSeverityVulnerabilities();
+  }, 120000);
+});
+```
+
+### Performance Testing
+
+```typescript
+describe('Performance Tests', () => {
+  it('should handle concurrent load', async () => {
+    const results = await kit.stress({
+      scenario: './scenarios/performance.yaml',
+      concurrency: 10,
+      duration: 30,
+      rampUp: 5,
+    });
+
+    expect(results).toPassStressTest();
+  }, 60000);
+
+  it('should achieve minimum throughput', async () => {
+    const results = await kit.stress({
+      scenario: './scenarios/performance.yaml',
+      concurrency: 10,
+      duration: 30,
+    });
+
+    expect(results).toAchieveRPS(2); // At least 2 requests per second
+    expect(results).toHaveStressSuccessRate(0.95);
+  }, 60000);
+
+  it('should maintain acceptable latency under load', async () => {
+    const results = await kit.stress({
+      scenario: './scenarios/performance.yaml',
+      concurrency: 10,
+      duration: 30,
+    });
+
+    expect(results).toHaveStressP95LatencyBelow(5000);
+  }, 60000);
+});
+```
+
+### CI/CD Integration
+
+Example test file for CI/CD pipelines:
+
+```typescript
+// llm-quality.test.ts
+import { ArtemisKit } from '@artemiskit/sdk';
+import { jestMatchers } from '@artemiskit/sdk/jest';
+
+expect.extend(jestMatchers);
+
+const CI_TIMEOUT = 120000;
+const isCI = process.env.CI === 'true';
+
+describe('LLM Quality Gate', () => {
+  let kit: ArtemisKit;
+
+  beforeAll(() => {
+    kit = new ArtemisKit({
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+      project: 'ci-quality-gate',
+    });
+  });
+
+  // Always run: Quick smoke tests
+  it('smoke: critical functionality', async () => {
+    const results = await kit.run({
+      scenario: './scenarios/smoke.yaml',
+    });
+
+    expect(results).toPassAllCases();
+    expect(results).toHaveMedianLatencyBelow(3000);
+  }, CI_TIMEOUT);
+
+  // Always run: Security baseline
+  it('security: no critical vulnerabilities', async () => {
+    const results = await kit.redteam({
+      scenario: './scenarios/security.yaml',
+      mutations: ['typo', 'role-spoof'],
+      countPerCase: 3,
+    });
+
+    expect(results).toHaveNoCriticalVulnerabilities();
+  }, CI_TIMEOUT);
+
+  // Skip in CI: Full regression suite (too slow)
+  (isCI ? it.skip : it)('regression: full test suite', async () => {
+    const results = await kit.run({
+      scenario: './scenarios/',
+      parallel: true,
+    });
+
+    expect(results).toHaveSuccessRate(0.95);
+  }, 300000);
+
+  // Skip in CI: Performance testing
+  (isCI ? it.skip : it)('performance: stress test', async () => {
+    const results = await kit.stress({
+      scenario: './scenarios/performance.yaml',
+      concurrency: 10,
+      duration: 60,
+    });
+
+    expect(results).toPassStressTest();
+    expect(results).toAchieveRPS(1);
+  }, 120000);
+});
+```
+
+## Custom Assertions
+
+You can also access raw results for custom assertions:
+
+```typescript
+it('should meet custom criteria', async () => {
+  const results = await kit.run({
+    scenario: './scenarios/quality.yaml',
+  });
+
+  // Access raw manifest data
+  const { manifest, cases } = results;
+
+  // Custom assertions
+  expect(manifest.project).toBe('my-project');
+  expect(manifest.metrics.total_cases).toBeGreaterThan(0);
+  expect(manifest.metrics.pass_rate).toBeGreaterThanOrEqual(0.8);
+
+  // Check individual cases
+  for (const caseResult of cases) {
+    expect(caseResult.id).toBeDefined();
+    if (!caseResult.ok) {
+      console.log(`Failed: ${caseResult.name} - ${caseResult.reason}`);
+    }
+  }
+});
+```
+
+## Best Practices
+
+1. **Set appropriate timeouts** — LLM calls can be slow; use 60-120 second timeouts
+2. **Use tags for organization** — Group tests by criticality (smoke, critical, regression)
+3. **Skip slow tests in CI** — Use `it.skip` or environment checks for performance tests
+4. **Test incrementally** — Start with smoke tests, then add security and performance
+5. **Monitor flakiness** — LLM responses can vary; use appropriate success rate thresholds
+
+## See Also
+
+- [SDK Overview](/docs/sdk/) — ArtemisKit SDK documentation
+- [Evaluation API](/docs/sdk/evaluation/) — Programmatic evaluation
+- [Guardian Mode](/docs/sdk/guardian/) — Runtime protection
+- [CI/CD Integration](/docs/cli/ci-cd/) — CI/CD setup guide

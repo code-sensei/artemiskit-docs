@@ -1,0 +1,391 @@
+---
+title: DeepAgents Adapter
+description: Test DeepAgents multi-agent systems with ArtemisKit
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# DeepAgents Adapter
+
+The DeepAgents adapter (`@artemiskit/adapter-deepagents`) enables testing of DeepAgents multi-agent systems with ArtemisKit.
+
+<Aside type="tip">
+  This adapter captures inter-agent communication, tool usage, and execution traces for comprehensive multi-agent testing.
+</Aside>
+
+## Installation
+
+```bash
+bun add @artemiskit/adapter-deepagents
+# or
+npm install @artemiskit/adapter-deepagents
+```
+
+## Quick Start
+
+<Steps>
+
+1. **Create your DeepAgents team**
+
+   ```typescript
+   import { createTeam, Agent } from 'deepagents';
+
+   const researcher = new Agent({
+     name: 'researcher',
+     role: 'Research specialist',
+     tools: [webSearchTool],
+   });
+
+   const writer = new Agent({
+     name: 'writer',
+     role: 'Content writer',
+   });
+
+   const team = createTeam({
+     agents: [researcher, writer],
+     workflow: 'sequential',
+   });
+   ```
+
+2. **Wrap with ArtemisKit adapter**
+
+   ```typescript
+   import { createDeepAgentsAdapter } from '@artemiskit/adapter-deepagents';
+
+   const adapter = createDeepAgentsAdapter(team, {
+     name: 'content-team',
+     captureTraces: true,
+     captureMessages: true,
+   });
+   ```
+
+3. **Use in tests**
+
+   ```typescript
+   const result = await adapter.generate({
+     prompt: 'Write an article about AI testing',
+   });
+
+   console.log(result.text); // Final output
+   console.log(result.raw.metadata.agentsInvolved); // ['researcher', 'writer']
+   ```
+
+</Steps>
+
+## Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `name` | `string` | - | Identifier for the agent system |
+| `captureTraces` | `boolean` | `true` | Capture agent execution traces |
+| `captureMessages` | `boolean` | `true` | Capture inter-agent messages |
+| `executionTimeout` | `number` | `300000` | Max execution time in ms (5 min) |
+| `inputTransformer` | `function` | - | Custom input transformation |
+| `outputTransformer` | `function` | - | Custom output transformation |
+
+## Examples
+
+### Testing a Sequential Team
+
+```typescript
+import { createDeepAgentsAdapter } from '@artemiskit/adapter-deepagents';
+import { createTeam, Agent } from 'deepagents';
+
+// Create sequential team (researcher → writer → editor)
+const researcher = new Agent({
+  name: 'researcher',
+  role: 'Research specialist',
+  tools: [webSearchTool, documentReader],
+});
+
+const writer = new Agent({
+  name: 'writer',
+  role: 'Content writer',
+});
+
+const editor = new Agent({
+  name: 'editor',
+  role: 'Content editor',
+});
+
+const team = createTeam({
+  agents: [researcher, writer, editor],
+  workflow: 'sequential',
+});
+
+// Wrap with adapter
+const adapter = createDeepAgentsAdapter(team, {
+  name: 'content-pipeline',
+  captureTraces: true,
+  captureMessages: true,
+});
+
+// Test
+const result = await adapter.generate({
+  prompt: 'Write a blog post about AI testing best practices',
+});
+
+console.log(result.text); // Final edited article
+
+// Verify execution
+const metadata = result.raw.metadata;
+console.log(metadata.agentsInvolved); // ['researcher', 'writer', 'editor']
+console.log(metadata.totalMessages); // Messages between agents
+```
+
+### Testing a Parallel Team
+
+```typescript
+import { createDeepAgentsAdapter } from '@artemiskit/adapter-deepagents';
+
+// Create parallel team (all agents work simultaneously)
+const analysisTeam = createTeam({
+  agents: [
+    new Agent({ name: 'technical-analyst', role: 'Technical analysis' }),
+    new Agent({ name: 'market-analyst', role: 'Market analysis' }),
+    new Agent({ name: 'risk-analyst', role: 'Risk assessment' }),
+  ],
+  workflow: 'parallel',
+});
+
+const adapter = createDeepAgentsAdapter(analysisTeam, {
+  name: 'analysis-team',
+});
+
+const result = await adapter.generate({
+  prompt: 'Analyze the potential of quantum computing investments',
+});
+
+// All three analysts contributed
+const metadata = result.raw.metadata;
+expect(metadata.agentsInvolved.length).toBe(3);
+```
+
+### Testing a Hierarchical System
+
+```typescript
+import { createDeepAgentsAdapter } from '@artemiskit/adapter-deepagents';
+import { createHierarchy, Coordinator, Worker } from 'deepagents';
+
+// Create hierarchical system with coordinator
+const coordinator = new Coordinator({
+  name: 'manager',
+  strategy: 'delegate-and-synthesize',
+});
+
+const workers = [
+  new Worker({ name: 'analyst', specialty: 'data analysis' }),
+  new Worker({ name: 'visualizer', specialty: 'chart creation' }),
+  new Worker({ name: 'reporter', specialty: 'report writing' }),
+];
+
+const hierarchy = createHierarchy({ coordinator, workers });
+
+const adapter = createDeepAgentsAdapter(hierarchy, {
+  name: 'reporting-team',
+  executionTimeout: 120000, // 2 minutes
+});
+
+const result = await adapter.generate({
+  prompt: 'Create a comprehensive quarterly report with visualizations',
+});
+```
+
+### Accessing Execution Traces
+
+```typescript
+const adapter = createDeepAgentsAdapter(myTeam, {
+  name: 'traced-team',
+  captureTraces: true,
+  captureMessages: true,
+});
+
+const result = await adapter.generate({ prompt: 'Complex task' });
+
+const { metadata } = result.raw;
+
+// See which agents participated
+console.log('Agents:', metadata.agentsInvolved);
+
+// See tools used across all agents
+console.log('Tools:', metadata.toolsUsed);
+console.log('Tool calls:', metadata.totalToolCalls);
+
+// See full execution trace
+for (const trace of metadata.traces) {
+  console.log(`[${trace.agent}] ${trace.action}:`, trace.output);
+}
+
+// See inter-agent communication
+for (const msg of metadata.messages) {
+  console.log(`${msg.from} → ${msg.to}:`, msg.content);
+}
+```
+
+### Using with ArtemisKit Scenarios
+
+Create a YAML scenario:
+
+```yaml
+# multi-agent-test.yaml
+name: multi-agent-evaluation
+description: Test multi-agent collaboration
+
+cases:
+  - id: research-task
+    prompt: "Research and summarize recent developments in AI"
+    expected:
+      type: llm_grader
+      criteria: "Response is well-researched with multiple perspectives"
+      minScore: 0.8
+    tags: [research]
+
+  - id: content-creation
+    prompt: "Write a technical blog post about testing LLM applications"
+    expected:
+      type: combined
+      assertions:
+        - type: contains
+          values: ["testing", "LLM"]
+        - type: llm_grader
+          criteria: "Content is well-structured and informative"
+          minScore: 0.7
+    tags: [content]
+
+  - id: analysis-task
+    prompt: "Analyze the pros and cons of microservices architecture"
+    expected:
+      type: llm_grader
+      criteria: "Analysis covers both advantages and disadvantages"
+      minScore: 0.8
+    tags: [analysis]
+```
+
+Run with ArtemisKit:
+
+```typescript
+import { ArtemisKit } from '@artemiskit/sdk';
+import { createDeepAgentsAdapter } from '@artemiskit/adapter-deepagents';
+
+const adapter = createDeepAgentsAdapter(myTeam);
+
+const kit = new ArtemisKit({
+  adapter,
+  project: 'multi-agent-testing',
+});
+
+const results = await kit.run({
+  scenario: './multi-agent-test.yaml',
+  tags: ['research', 'content'],
+});
+
+console.log(`Pass rate: ${results.manifest.metrics.pass_rate * 100}%`);
+```
+
+## Supported System Types
+
+The adapter supports DeepAgents systems that implement one of these methods:
+
+| Method | Description |
+|--------|-------------|
+| `invoke(input, config)` | Primary execution method |
+| `run(input, config)` | Alternative execution method |
+| `execute(input, config)` | Legacy execution method |
+
+All methods should return a `DeepAgentsOutput` object.
+
+## Execution Metadata
+
+The adapter captures rich metadata about multi-agent execution:
+
+```typescript
+interface DeepAgentsExecutionMetadata {
+  name?: string;                  // System name
+  agentsInvolved: string[];       // All participating agents
+  totalAgentCalls: number;        // Total agent invocations
+  totalMessages: number;          // Messages exchanged
+  totalToolCalls: number;         // Tool invocations across agents
+  toolsUsed: string[];            // Unique tools used
+  traces?: DeepAgentsTrace[];     // Full execution traces
+  messages?: DeepAgentsMessage[]; // Full message log
+  executionTimeMs?: number;       // Total execution time
+}
+
+interface DeepAgentsTrace {
+  agent: string;
+  action: string;
+  input?: unknown;
+  output?: unknown;
+  timestamp: number;
+  toolsUsed?: string[];
+}
+
+interface DeepAgentsMessage {
+  from: string;
+  to: string;
+  content: string;
+  timestamp: number;
+}
+```
+
+## Streaming Support
+
+If your system supports streaming via `stream()`, the adapter will use it:
+
+```typescript
+const adapter = createDeepAgentsAdapter(myTeam);
+
+for await (const chunk of adapter.stream({ prompt: 'Long task' }, console.log)) {
+  // Process streaming events
+}
+```
+
+## Best Practices
+
+1. **Set appropriate timeouts** — Multi-agent systems can take longer
+2. **Enable tracing in development** — Use `captureTraces: true` for debugging
+3. **Capture messages** — Useful for understanding agent collaboration
+4. **Test individual agents first** — Before testing the full team
+5. **Monitor costs** — Multi-agent systems make many LLM calls
+6. **Test failure handling** — Ensure graceful degradation
+
+## Troubleshooting
+
+### "Execution timeout"
+
+Multi-agent tasks can take a long time. Increase the timeout:
+
+```typescript
+const adapter = createDeepAgentsAdapter(team, {
+  executionTimeout: 300000, // 5 minutes
+});
+```
+
+### "No agents involved"
+
+Ensure your system correctly reports participating agents:
+
+```typescript
+// Your DeepAgents system should include agent names in output
+return {
+  result: output,
+  agents: ['agent1', 'agent2'], // List participating agents
+};
+```
+
+### "Messages not captured"
+
+Ensure `captureMessages` is enabled and your system emits messages:
+
+```typescript
+const adapter = createDeepAgentsAdapter(team, {
+  captureMessages: true,
+});
+```
+
+## See Also
+
+- [Agentic Adapters Overview](/docs/sdk/adapters/) — All agentic adapters
+- [LangChain Adapter](/docs/sdk/adapters/langchain/) — Chain/agent testing
+- [SDK Overview](/docs/sdk/) — ArtemisKit SDK documentation
+- [Test Matchers](/docs/sdk/matchers/) — Jest/Vitest matchers

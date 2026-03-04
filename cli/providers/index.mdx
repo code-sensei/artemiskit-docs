@@ -9,6 +9,8 @@ ArtemisKit supports multiple LLM providers through adapters. Choose the one that
 
 ## Available Providers
 
+### LLM Providers
+
 | Provider | Package | Best For |
 |----------|---------|----------|
 | [OpenAI](/docs/cli/providers/openai/) | `@artemiskit/adapter-openai` | GPT models, production |
@@ -16,6 +18,17 @@ ArtemisKit supports multiple LLM providers through adapters. Choose the one that
 | [OpenAI-Compatible](/docs/cli/providers/openai-compatible/) | `@artemiskit/adapter-openai` | Groq, Together, Ollama, etc. |
 | [Anthropic](/docs/cli/providers/anthropic/) | `@artemiskit/adapter-anthropic` | Claude models |
 | [Vercel AI](/docs/cli/providers/vercel-ai/) | `@artemiskit/adapter-vercel-ai` | Multi-provider apps |
+
+### Agentic Adapters
+
+For testing LangChain chains/agents and multi-agent systems:
+
+| Adapter | Package | Best For |
+|---------|---------|----------|
+| [LangChain](/docs/sdk/adapters/langchain/) | `@artemiskit/adapter-langchain` | Chains, agents, LCEL, RAG |
+| [DeepAgents](/docs/sdk/adapters/deepagents/) | `@artemiskit/adapter-deepagents` | Multi-agent systems |
+
+See [Agentic Adapters](/docs/sdk/adapters/) for full documentation on testing AI agents.
 
 ## Quick Setup
 

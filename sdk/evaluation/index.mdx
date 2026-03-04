@@ -1,0 +1,493 @@
+---
+title: Evaluation API
+description: Programmatic LLM evaluation with ArtemisKit SDK
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Evaluation API
+
+The ArtemisKit SDK provides a programmatic API for running LLM evaluations, red team testing, and stress testing directly from your code.
+
+<Aside type="tip">
+  Use the SDK when you need to embed evaluations in your application, test suites, or CI/CD pipelines beyond what the CLI offers.
+</Aside>
+
+## Installation
+
+```bash
+bun add @artemiskit/sdk
+# or
+npm install @artemiskit/sdk
+```
+
+## Quick Start
+
+```typescript
+import { ArtemisKit } from '@artemiskit/sdk';
+
+const kit = new ArtemisKit({
+  provider: 'openai',
+  model: 'gpt-4o',
+  project: 'my-project',
+});
+
+// Run scenario-based evaluation
+const results = await kit.run({
+  scenario: './scenarios/quality.yaml',
+});
+
+console.log(`Pass rate: ${results.manifest.metrics.pass_rate * 100}%`);
+console.log(`Success: ${results.success}`);
+```
+
+## Configuration
+
+```typescript
+import { ArtemisKit } from '@artemiskit/sdk';
+
+const kit = new ArtemisKit({
+  // Project identifier (for organizing results)
+  project: 'my-llm-app',
+
+  // Default provider and model
+  provider: 'openai',       // 'openai' | 'anthropic' | 'azure-openai' | 'vercel-ai'
+  model: 'gpt-4o',
+
+  // Provider configuration
+  providerConfig: {
+    apiKey: process.env.OPENAI_API_KEY,
+    timeout: 60000,
+  },
+
+  // Redaction settings
+  redaction: {
+    enabled: true,
+    patterns: ['email', 'phone', 'ssn', 'api_key'],
+  },
+
+  // Default timeout and retries
+  timeout: 30000,
+  retries: 2,
+  concurrency: 5,
+});
+```
+
+## Running Evaluations
+
+### Basic Run
+
+```typescript
+const results = await kit.run({
+  scenario: './scenarios/quality.yaml',
+});
+
+console.log('Success:', results.success);
+console.log('Pass rate:', results.manifest.metrics.pass_rate);
+console.log('Cases:', results.cases);
+```
+
+### With Tag Filtering
+
+```typescript
+// Run only cases with specific tags
+const results = await kit.run({
+  scenario: './scenarios/quality.yaml',
+  tags: ['critical', 'smoke'],
+});
+
+// Check tag-specific results
+const criticalCases = results.cases.filter(c => c.tags.includes('critical'));
+console.log(`Critical cases: ${criticalCases.filter(c => c.ok).length}/${criticalCases.length}`);
+```
+
+### With Custom Provider/Model
+
+```typescript
+// Override provider/model for this run
+const results = await kit.run({
+  scenario: './scenarios/quality.yaml',
+  provider: 'anthropic',
+  model: 'claude-3-opus-20240229',
+  providerConfig: {
+    apiKey: process.env.ANTHROPIC_API_KEY,
+  },
+});
+```
+
+### Parallel Execution
+
+```typescript
+const results = await kit.run({
+  scenario: './scenarios/large-suite.yaml',
+  concurrency: 10, // Run 10 cases in parallel
+});
+```
+
+### Using an Existing Client
+
+```typescript
+import { createAdapter } from '@artemiskit/core';
+
+// Create your own client
+const client = await createAdapter({
+  provider: 'openai',
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Use it with ArtemisKit
+const results = await kit.run({
+  scenario: './scenarios/quality.yaml',
+  client, // Pass existing client
+});
+
+// Clean up
+await client.close();
+```
+
+## Red Team Testing
+
+Run adversarial security testing against your LLM:
+
+```typescript
+const results = await kit.redteam({
+  scenario: './scenarios/quality.yaml',
+  mutations: ['typo', 'role-spoof', 'encoding', 'instruction-flip'],
+  countPerCase: 5, // 5 mutations per test case
+});
+
+console.log('Defense rate:', results.defenseRate);
+console.log('Unsafe responses:', results.unsafeCount);
+console.log('Success:', results.success); // true if defense rate >= 95%
+```
+
+### Available Mutations
+
+| Mutation | Description |
+|----------|-------------|
+| `typo` | Introduce typos to bypass filters |
+| `role-spoof` | Attempt role/persona hijacking |
+| `instruction-flip` | Reverse or contradict instructions |
+| `cot-injection` | Chain-of-thought injection attacks |
+| `encoding` | Use encoding (base64, hex, unicode) to obfuscate |
+| `multi-turn` | Multi-turn conversation attacks |
+
+### Checking Vulnerabilities
+
+```typescript
+const results = await kit.redteam({
+  scenario: './scenarios/quality.yaml',
+});
+
+// Check severity breakdown
+const { by_severity } = results.manifest.metrics;
+console.log('Critical:', by_severity.critical);
+console.log('High:', by_severity.high);
+console.log('Medium:', by_severity.medium);
+console.log('Low:', by_severity.low);
+
+// Custom thresholds
+const hasCritical = by_severity.critical > 0;
+const hasHigh = by_severity.high > 0;
+
+if (hasCritical) {
+  console.error('CRITICAL vulnerabilities found!');
+  process.exit(1);
+}
+```
+
+## Stress Testing
+
+Test your LLM application under load:
+
+```typescript
+const results = await kit.stress({
+  scenario: './scenarios/performance.yaml',
+  concurrency: 10,     // 10 concurrent workers
+  duration: 60,        // Run for 60 seconds
+  rampUp: 10,          // 10 second ramp-up period
+});
+
+console.log('RPS:', results.rps);
+console.log('P95 Latency:', results.p95LatencyMs, 'ms');
+console.log('Success rate:', results.successRate);
+```
+
+### Stress Test Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `concurrency` | `number` | `10` | Number of concurrent workers |
+| `duration` | `number` | `30` | Test duration in seconds |
+| `rampUp` | `number` | `5` | Ramp-up period in seconds |
+| `maxRequests` | `number` | - | Maximum requests (optional cap) |
+
+### Stress Metrics
+
+```typescript
+const results = await kit.stress({
+  scenario: './scenarios/performance.yaml',
+  concurrency: 10,
+  duration: 60,
+});
+
+const { metrics } = results.manifest;
+
+console.log('Total requests:', metrics.total_requests);
+console.log('Successful:', metrics.successful_requests);
+console.log('Failed:', metrics.failed_requests);
+console.log('Success rate:', metrics.success_rate);
+console.log('RPS:', metrics.requests_per_second);
+
+// Latency metrics
+console.log('Min latency:', metrics.min_latency_ms, 'ms');
+console.log('Max latency:', metrics.max_latency_ms, 'ms');
+console.log('Avg latency:', metrics.avg_latency_ms, 'ms');
+console.log('P50 latency:', metrics.p50_latency_ms, 'ms');
+console.log('P90 latency:', metrics.p90_latency_ms, 'ms');
+console.log('P95 latency:', metrics.p95_latency_ms, 'ms');
+console.log('P99 latency:', metrics.p99_latency_ms, 'ms');
+
+// Token metrics (if available)
+if (metrics.tokens) {
+  console.log('Total tokens:', metrics.tokens.total_tokens);
+  console.log('Avg per request:', metrics.tokens.avg_tokens_per_request);
+}
+```
+
+## Event Handling
+
+Subscribe to events for real-time progress updates:
+
+```typescript
+const kit = new ArtemisKit({ project: 'my-project' });
+
+// Progress updates
+kit.on('progress', (event) => {
+  console.log(`[${event.phase}] ${event.message} (${event.progress}%)`);
+});
+
+// Case completion
+kit.on('caseComplete', (event) => {
+  const { result, index, total } = event;
+  console.log(`Case ${index + 1}/${total}: ${result.ok ? 'PASS' : 'FAIL'}`);
+});
+
+// Red team mutation completion
+kit.on('redteamMutationComplete', (event) => {
+  console.log(`Mutation: ${event.mutation}, Status: ${event.status}`);
+});
+
+// Stress test request completion
+kit.on('stressRequestComplete', (event) => {
+  console.log(`Request ${event.index}: ${event.result.latencyMs}ms, RPS: ${event.currentRPS}`);
+});
+
+// Run with events
+const results = await kit.run({
+  scenario: './scenarios/quality.yaml',
+});
+```
+
+### Convenience Event Methods
+
+```typescript
+kit
+  .onCaseStart((event) => {
+    console.log('Starting case:', event.caseId);
+  })
+  .onCaseComplete((event) => {
+    console.log('Completed case:', event.result.id);
+  })
+  .onProgress((event) => {
+    console.log('Progress:', event.message);
+  })
+  .onRedTeamMutationStart((event) => {
+    console.log('Starting mutation:', event.mutation);
+  })
+  .onRedTeamMutationComplete((event) => {
+    console.log('Mutation result:', event.status);
+  })
+  .onStressRequestComplete((event) => {
+    console.log('Request latency:', event.result.latencyMs);
+  });
+```
+
+### One-Time Events
+
+```typescript
+// Listen for first case completion only
+kit.once('caseComplete', (event) => {
+  console.log('First case completed:', event.result.id);
+});
+```
+
+## Result Objects
+
+### Run Result
+
+```typescript
+interface RunResult {
+  success: boolean;
+  manifest: {
+    version: string;
+    type: 'evaluation';
+    run_id: string;
+    project: string;
+    start_time: string;
+    end_time: string;
+    duration_ms: number;
+    config: { ... };
+    metrics: {
+      total_cases: number;
+      passed_cases: number;
+      failed_cases: number;
+      skipped_cases: number;
+      pass_rate: number;
+      latency: {
+        min_ms: number;
+        max_ms: number;
+        avg_ms: number;
+        p50_ms: number;
+        p95_ms: number;
+        p99_ms: number;
+      };
+    };
+    git?: { ... };
+    provenance?: { ... };
+  };
+  cases: CaseResult[];
+}
+```
+
+### Red Team Result
+
+```typescript
+interface RedTeamResult {
+  success: boolean;
+  defenseRate: number;
+  unsafeCount: number;
+  manifest: {
+    metrics: {
+      total_tests: number;
+      safe_responses: number;
+      blocked_responses: number;
+      unsafe_responses: number;
+      error_responses: number;
+      defended: number;
+      defense_rate: number;
+      by_severity: {
+        low: number;
+        medium: number;
+        high: number;
+        critical: number;
+      };
+    };
+    results: RedTeamCaseResult[];
+  };
+}
+```
+
+### Stress Result
+
+```typescript
+interface StressResult {
+  success: boolean;
+  successRate: number;
+  rps: number;
+  p95LatencyMs: number;
+  manifest: {
+    metrics: {
+      total_requests: number;
+      successful_requests: number;
+      failed_requests: number;
+      success_rate: number;
+      requests_per_second: number;
+      min_latency_ms: number;
+      max_latency_ms: number;
+      avg_latency_ms: number;
+      p50_latency_ms: number;
+      p90_latency_ms: number;
+      p95_latency_ms: number;
+      p99_latency_ms: number;
+      tokens?: { ... };
+    };
+  };
+}
+```
+
+## Inline Scenarios
+
+You can pass scenarios directly without YAML files:
+
+```typescript
+const results = await kit.run({
+  scenario: {
+    name: 'inline-test',
+    description: 'Test directly in code',
+    cases: [
+      {
+        id: 'math-test',
+        prompt: 'What is 2 + 2?',
+        expected: {
+          type: 'contains',
+          values: ['4'],
+          mode: 'any',
+        },
+      },
+      {
+        id: 'greeting-test',
+        prompt: 'Say hello',
+        expected: {
+          type: 'llm_grader',
+          criteria: 'Response is a friendly greeting',
+          minScore: 0.8,
+        },
+      },
+    ],
+  },
+});
+```
+
+## Error Handling
+
+```typescript
+try {
+  const results = await kit.run({
+    scenario: './scenarios/quality.yaml',
+  });
+
+  if (!results.success) {
+    const failedCases = results.cases.filter(c => !c.ok);
+    for (const failed of failedCases) {
+      console.error(`Failed: ${failed.name} - ${failed.reason}`);
+    }
+    process.exit(1);
+  }
+} catch (error) {
+  if (error.code === 'SCENARIO_NOT_FOUND') {
+    console.error('Scenario file not found');
+  } else if (error.code === 'PROVIDER_ERROR') {
+    console.error('Provider error:', error.message);
+  } else {
+    console.error('Unexpected error:', error);
+  }
+  process.exit(1);
+}
+```
+
+## Best Practices
+
+1. **Use project names** — Set meaningful project names for result organization
+2. **Configure timeouts** — Set appropriate timeouts for your use case
+3. **Enable redaction** — Redact PII in results to avoid logging sensitive data
+4. **Use tags** — Tag test cases for selective execution
+5. **Handle events** — Subscribe to events for progress monitoring
+6. **Clean up clients** — Close clients when done if creating your own
+
+## See Also
+
+- [SDK Overview](/docs/sdk/) — ArtemisKit SDK documentation
+- [Test Matchers](/docs/sdk/matchers/) — Jest/Vitest matchers
+- [Guardian Mode](/docs/sdk/guardian/) — Runtime protection
+- [Scenario Format](/docs/cli/scenarios/format/) — YAML scenario reference

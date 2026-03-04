@@ -1,6 +1,6 @@
 ---
 title: SDK Overview
-description: ArtemisKit SDK for programmatic LLM evaluation and runtime protection
+description: ArtemisKit SDK for programmatic LLM evaluation, runtime protection, and test integration
 ---
 
 import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
@@ -18,7 +18,7 @@ npm install @artemiskit/sdk
 Or with other package managers:
 
 ```bash
-# Bun
+# Bun (recommended)
 bun add @artemiskit/sdk
 
 # pnpm
@@ -33,15 +33,19 @@ yarn add @artemiskit/sdk
 <CardGrid>
   <Card title="Guardian Mode" icon="shield">
     Runtime protection for AI applications with injection detection, PII filtering, and action validation.
+    [Learn more →](/docs/sdk/guardian/)
   </Card>
   <Card title="Evaluation API" icon="check">
-    Programmatic LLM evaluation with all CLI matchers available in code.
+    Programmatic LLM evaluation with all CLI evaluators available in code.
+    [Learn more →](/docs/sdk/evaluation/)
   </Card>
   <Card title="Test Integration" icon="puzzle">
     Jest and Vitest matchers for LLM testing in your test suites.
+    [Learn more →](/docs/sdk/matchers/)
   </Card>
-  <Card title="Multi-Provider" icon="rocket">
-    Support for OpenAI, Azure, Anthropic, and more.
+  <Card title="Agentic Adapters" icon="rocket">
+    Test LangChain chains/agents and DeepAgents multi-agent systems.
+    [Learn more →](/docs/sdk/adapters/)
   </Card>
 </CardGrid>
 
@@ -49,8 +53,10 @@ yarn add @artemiskit/sdk
 
 ### Guardian Mode (Runtime Protection)
 
+Protect your LLM applications from prompt injection, jailbreaks, and unauthorized actions.
+
 ```typescript
-import { createGuardian } from '@artemiskit/sdk/guardian';
+import { createGuardian } from '@artemiskit/sdk';
 import { createAdapter } from '@artemiskit/core';
 
 // Create your LLM client
@@ -61,7 +67,7 @@ const client = await createAdapter({
 
 // Create guardian with protection settings
 const guardian = createGuardian({
-  mode: 'guardian',
+  mode: 'guardian',        // 'testing' | 'guardian' | 'hybrid'
   blockOnFailure: true,
   validateInput: true,
   validateOutput: true,
@@ -79,46 +85,83 @@ const result = await protectedClient.generate({
 
 ### Evaluation API
 
+Run programmatic evaluations with full access to all evaluator types.
+
 ```typescript
 import { ArtemisKit } from '@artemiskit/sdk';
 
-const artemis = new ArtemisKit({
+const kit = new ArtemisKit({
   provider: 'openai',
-  apiKey: process.env.OPENAI_API_KEY,
-  model: 'gpt-4',
+  model: 'gpt-4o',
+  project: 'my-project',
 });
 
-const result = await artemis.evaluate({
-  prompt: 'What is 2+2?',
-  expected: {
-    type: 'contains',
-    values: ['4'],
-    mode: 'any',
-  },
+// Run scenario-based evaluation
+const results = await kit.run({
+  scenario: './scenarios/quality-tests.yaml',
 });
 
-console.log(result.passed); // true
+console.log(`Pass rate: ${results.manifest.metrics.pass_rate * 100}%`);
+
+// Red team security testing
+const redteamResults = await kit.redteam({
+  scenario: './scenarios/my-app.yaml',
+  mutations: ['typo', 'role-spoof', 'encoding'],
+  countPerCase: 5,
+});
+
+// Stress testing
+const stressResults = await kit.stress({
+  scenario: './scenarios/load-test.yaml',
+  concurrency: 10,
+  duration: 60,
+});
 ```
 
 ### Jest Integration
 
 ```typescript
-import { expect } from '@artemiskit/sdk/matchers/jest';
+import { ArtemisKit } from '@artemiskit/sdk';
+import { jestMatchers } from '@artemiskit/sdk/jest';
+
+// Extend Jest with ArtemisKit matchers
+expect.extend(jestMatchers);
 
 describe('My LLM App', () => {
-  it('answers math questions', async () => {
-    const response = await myApp.ask('What is 2+2?');
+  let kit: ArtemisKit;
 
-    await expect(response).toContainLLM(['4']);
+  beforeAll(() => {
+    kit = new ArtemisKit({
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+      project: 'jest-tests',
+    });
   });
 
-  it('responds appropriately', async () => {
-    const response = await myApp.ask('Hello');
-
-    await expect(response).toPassLLMGrade({
-      criteria: 'Response is friendly and helpful',
-      minScore: 0.8,
+  it('should pass all test cases', async () => {
+    const results = await kit.run({
+      scenario: './scenarios/quality.yaml',
     });
+
+    expect(results).toPassAllCases();
+  });
+
+  it('should achieve 90% success rate', async () => {
+    const results = await kit.run({
+      scenario: './scenarios/quality.yaml',
+    });
+
+    expect(results).toHaveSuccessRate(0.9);
+  });
+
+  it('should pass red team testing', async () => {
+    const results = await kit.redteam({
+      scenario: './scenarios/quality.yaml',
+      mutations: ['typo', 'role-spoof'],
+    });
+
+    expect(results).toPassRedTeam();
+    expect(results).toHaveNoCriticalVulnerabilities();
   });
 });
 ```
@@ -126,28 +169,82 @@ describe('My LLM App', () => {
 ### Vitest Integration
 
 ```typescript
-import { expect } from '@artemiskit/sdk/matchers/vitest';
+import { ArtemisKit } from '@artemiskit/sdk';
+import { vitestMatchers } from '@artemiskit/sdk/vitest';
+import { beforeAll, describe, expect, test } from 'vitest';
+
+// Extend Vitest with ArtemisKit matchers
+expect.extend(vitestMatchers);
 
 describe('My LLM App', () => {
-  it('follows instructions', async () => {
-    const response = await myApp.ask('List 3 colors');
+  let kit: ArtemisKit;
 
-    await expect(response).toMatchLLMSchema({
-      type: 'array',
-      items: { type: 'string' },
-      minItems: 3,
+  beforeAll(() => {
+    kit = new ArtemisKit({
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+      project: 'vitest-tests',
     });
   });
+
+  test('should pass all cases', async () => {
+    const results = await kit.run({
+      scenario: './scenarios/quality.yaml',
+    });
+
+    expect(results).toPassAllCases();
+  }, 60_000);
+
+  test('should have acceptable latency', async () => {
+    const results = await kit.run({
+      scenario: './scenarios/quality.yaml',
+    });
+
+    expect(results).toHaveMedianLatencyBelow(5000);
+    expect(results).toHaveP95LatencyBelow(10000);
+  }, 60_000);
 });
 ```
+
+## Available Matchers
+
+### Run Test Matchers
+
+| Matcher | Description |
+|---------|-------------|
+| `toPassAllCases()` | All test cases passed |
+| `toHaveSuccessRate(rate)` | Achieve minimum success rate (0-1) |
+| `toPassCasesWithTag(tag)` | All cases with tag passed |
+| `toHaveMedianLatencyBelow(ms)` | Median latency under threshold |
+| `toHaveP95LatencyBelow(ms)` | P95 latency under threshold |
+
+### Red Team Matchers
+
+| Matcher | Description |
+|---------|-------------|
+| `toPassRedTeam()` | No vulnerabilities found |
+| `toHaveDefenseRate(rate)` | Achieve minimum defense rate (0-1) |
+| `toHaveNoCriticalVulnerabilities()` | No critical severity issues |
+| `toHaveNoHighSeverityVulnerabilities()` | No high severity issues |
+
+### Stress Test Matchers
+
+| Matcher | Description |
+|---------|-------------|
+| `toPassStressTest()` | Stress test passed |
+| `toHaveStressSuccessRate(rate)` | Achieve minimum success rate under load |
+| `toAchieveRPS(rps)` | Achieve minimum requests per second |
+| `toHaveStressP95LatencyBelow(ms)` | P95 latency under threshold |
 
 ## Documentation
 
 - [Guardian Mode](/docs/sdk/guardian/) — Runtime protection for AI apps
-- [Evaluation API](/docs/sdk/evaluation/) — Programmatic evaluation (coming soon)
-- [Test Matchers](/docs/sdk/matchers/) — Jest/Vitest integration (coming soon)
+- [Evaluation API](/docs/sdk/evaluation/) — Programmatic evaluation
+- [Test Matchers](/docs/sdk/matchers/) — Jest/Vitest integration
+- [Agentic Adapters](/docs/sdk/adapters/) — LangChain and DeepAgents
 
 ## See Also
 
 - [CLI Documentation](/docs/cli/) — Command-line interface
 - [Getting Started](/docs/cli/getting-started/) — Quick start guide
+- [Providers](/docs/cli/providers/) — LLM provider configuration

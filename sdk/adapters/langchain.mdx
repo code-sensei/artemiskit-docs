@@ -1,0 +1,289 @@
+---
+title: LangChain Adapter
+description: Test LangChain chains, agents, and runnables with ArtemisKit
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# LangChain Adapter
+
+The LangChain adapter (`@artemiskit/adapter-langchain`) enables testing of LangChain.js chains, agents, and runnables with ArtemisKit.
+
+<Aside type="tip">
+  This adapter works with any LangChain runnable that implements the `invoke()` method.
+</Aside>
+
+## Installation
+
+```bash
+bun add @artemiskit/adapter-langchain
+# or
+npm install @artemiskit/adapter-langchain
+```
+
+## Quick Start
+
+<Steps>
+
+1. **Create your LangChain chain or agent**
+
+   ```typescript
+   import { ChatOpenAI } from '@langchain/openai';
+   import { StringOutputParser } from '@langchain/core/output_parsers';
+   import { ChatPromptTemplate } from '@langchain/core/prompts';
+
+   const model = new ChatOpenAI({ model: 'gpt-4' });
+   const prompt = ChatPromptTemplate.fromTemplate('Answer concisely: {input}');
+   const chain = prompt.pipe(model).pipe(new StringOutputParser());
+   ```
+
+2. **Wrap with ArtemisKit adapter**
+
+   ```typescript
+   import { createLangChainAdapter } from '@artemiskit/adapter-langchain';
+
+   const adapter = createLangChainAdapter(chain, {
+     name: 'qa-chain',
+     runnableType: 'chain',
+   });
+   ```
+
+3. **Use in tests**
+
+   ```typescript
+   const result = await adapter.generate({ prompt: 'What is 2+2?' });
+   console.log(result.text); // "4"
+   ```
+
+</Steps>
+
+## Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `name` | `string` | - | Identifier for the chain/agent |
+| `runnableType` | `'chain' \| 'agent' \| 'llm' \| 'runnable'` | auto-detect | Type of LangChain runnable |
+| `captureIntermediateSteps` | `boolean` | `true` | Capture agent intermediate steps |
+| `inputKey` | `string` | `'input'` | Custom input key for the runnable |
+| `outputKey` | `string` | `'output'` | Custom output key for the runnable |
+
+## Examples
+
+### Testing a Simple Chain
+
+```typescript
+import { createLangChainAdapter } from '@artemiskit/adapter-langchain';
+import { ChatOpenAI } from '@langchain/openai';
+import { StringOutputParser } from '@langchain/core/output_parsers';
+import { ChatPromptTemplate } from '@langchain/core/prompts';
+
+// Create LCEL chain
+const model = new ChatOpenAI({ model: 'gpt-4' });
+const prompt = ChatPromptTemplate.fromTemplate('Answer concisely: {input}');
+const chain = prompt.pipe(model).pipe(new StringOutputParser());
+
+// Wrap with adapter
+const adapter = createLangChainAdapter(chain, {
+  name: 'qa-chain',
+  runnableType: 'chain',
+});
+
+// Test
+const result = await adapter.generate({ prompt: 'What is the capital of France?' });
+console.log(result.text); // "Paris"
+console.log(result.latencyMs); // Execution time
+```
+
+### Testing an Agent with Tools
+
+```typescript
+import { createLangChainAdapter } from '@artemiskit/adapter-langchain';
+import { AgentExecutor, createReactAgent } from 'langchain/agents';
+import { ChatOpenAI } from '@langchain/openai';
+import { Calculator } from '@langchain/community/tools/calculator';
+import { pull } from 'langchain/hub';
+
+// Create agent
+const model = new ChatOpenAI({ model: 'gpt-4' });
+const tools = [new Calculator()];
+const prompt = await pull('hwchase17/react');
+const agent = await createReactAgent({ llm: model, tools, prompt });
+const agentExecutor = new AgentExecutor({ agent, tools });
+
+// Wrap with adapter
+const adapter = createLangChainAdapter(agentExecutor, {
+  name: 'calculator-agent',
+  runnableType: 'agent',
+  captureIntermediateSteps: true,
+});
+
+// Test
+const result = await adapter.generate({ prompt: 'Calculate 25 * 4' });
+console.log(result.text); // "100"
+
+// Access execution metadata
+const metadata = result.raw.metadata;
+console.log(metadata.toolsUsed); // ['calculator']
+console.log(metadata.totalToolCalls); // 1
+```
+
+### Testing a RAG Chain
+
+```typescript
+import { createLangChainAdapter } from '@artemiskit/adapter-langchain';
+import { ChatOpenAI } from '@langchain/openai';
+import { RetrievalQAChain } from 'langchain/chains';
+
+// Assume vectorstore is already set up
+const retriever = vectorstore.asRetriever();
+const chain = RetrievalQAChain.fromLLM(
+  new ChatOpenAI({ model: 'gpt-4' }),
+  retriever
+);
+
+// Wrap with custom input/output keys
+const adapter = createLangChainAdapter(chain, {
+  name: 'rag-qa',
+  inputKey: 'query',
+  outputKey: 'result',
+});
+
+const result = await adapter.generate({
+  prompt: 'What does the document say about X?',
+});
+```
+
+### Testing with ArtemisKit Scenarios
+
+Create a YAML scenario:
+
+```yaml
+# langchain-test.yaml
+name: langchain-qa-evaluation
+description: Test QA chain quality
+
+cases:
+  - id: factual-qa
+    prompt: "What is the capital of France?"
+    expected:
+      type: contains
+      values: ["Paris"]
+
+  - id: math-calculation
+    prompt: "What is 25 * 4?"
+    expected:
+      type: contains
+      values: ["100"]
+
+  - id: reasoning
+    prompt: "If it's raining, should I bring an umbrella?"
+    expected:
+      type: llm_grader
+      criteria: "Response recommends bringing an umbrella"
+      minScore: 0.8
+```
+
+Run with ArtemisKit:
+
+```typescript
+import { ArtemisKit } from '@artemiskit/sdk';
+import { createLangChainAdapter } from '@artemiskit/adapter-langchain';
+
+const adapter = createLangChainAdapter(myChain);
+
+const kit = new ArtemisKit({
+  adapter,
+  project: 'langchain-testing',
+});
+
+const results = await kit.run({
+  scenario: './langchain-test.yaml',
+});
+
+console.log(`Pass rate: ${results.manifest.metrics.pass_rate * 100}%`);
+```
+
+## Supported Runnable Types
+
+The adapter supports all LangChain runnables that implement `invoke()`:
+
+| Type | Examples |
+|------|----------|
+| **Chains** | LCEL chains, RetrievalQA, ConversationalRetrievalQA |
+| **Agents** | ReAct agents, OpenAI Functions agents, Tool-calling agents |
+| **LLMs** | ChatOpenAI, ChatAnthropic, ChatGoogleGenerativeAI |
+| **Runnables** | Any custom runnable with `invoke()` method |
+
+## Streaming Support
+
+If your runnable supports streaming via `stream()`, the adapter will use it:
+
+```typescript
+const adapter = createLangChainAdapter(myChain);
+
+for await (const chunk of adapter.stream({ prompt: 'Tell me a story' }, console.log)) {
+  // Process streaming chunks
+}
+```
+
+## Execution Metadata
+
+The adapter captures rich metadata about chain/agent execution:
+
+```typescript
+interface LangChainExecutionMetadata {
+  name?: string;                  // Chain/agent name
+  runnableType: string;           // Type of runnable
+  totalToolCalls: number;         // Tool invocations
+  toolsUsed: string[];            // Unique tools used
+  intermediateSteps?: object[];   // Agent intermediate steps
+  executionTimeMs?: number;       // Total execution time
+}
+```
+
+## Best Practices
+
+1. **Set appropriate input/output keys** — Match your chain's expected keys
+2. **Enable intermediate steps** — For debugging agent behavior
+3. **Use meaningful names** — For easier identification in reports
+4. **Test streaming separately** — If your chain supports streaming
+5. **Monitor token usage** — Chain calls can add up quickly
+
+## Troubleshooting
+
+### "Input key not found"
+
+Your chain expects a different input key. Set the `inputKey` option:
+
+```typescript
+const adapter = createLangChainAdapter(chain, {
+  inputKey: 'question', // Match your chain's input key
+});
+```
+
+### "Output is undefined"
+
+Your chain returns output under a different key. Set the `outputKey` option:
+
+```typescript
+const adapter = createLangChainAdapter(chain, {
+  outputKey: 'answer', // Match your chain's output key
+});
+```
+
+### Agent intermediate steps not captured
+
+Ensure `captureIntermediateSteps` is enabled:
+
+```typescript
+const adapter = createLangChainAdapter(agent, {
+  captureIntermediateSteps: true,
+});
+```
+
+## See Also
+
+- [Agentic Adapters Overview](/docs/sdk/adapters/) — All agentic adapters
+- [DeepAgents Adapter](/docs/sdk/adapters/deepagents/) — Multi-agent testing
+- [SDK Overview](/docs/sdk/) — ArtemisKit SDK documentation
+- [Test Matchers](/docs/sdk/matchers/) — Jest/Vitest matchers

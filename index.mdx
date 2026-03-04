@@ -20,22 +20,28 @@ ArtemisKit is available as multiple packages:
 | Package | npm Name | Description |
 |---------|----------|-------------|
 | CLI | `@artemiskit/cli` | Command-line interface (`artemiskit`, `akit`) |
-| Core | `@artemiskit/core` | Core library |
+| SDK | `@artemiskit/sdk` | Programmatic API, Guardian Mode, test matchers |
+| Core | `@artemiskit/core` | Core evaluation engine |
 | Reports | `@artemiskit/reports` | HTML/JSON report generation |
 | Red Team | `@artemiskit/redteam` | Security testing and mutations |
+| OpenAI Adapter | `@artemiskit/adapter-openai` | OpenAI and Azure OpenAI adapter |
+| Anthropic Adapter | `@artemiskit/adapter-anthropic` | Anthropic Claude adapter |
+| Vercel AI Adapter | `@artemiskit/adapter-vercel-ai` | Vercel AI SDK adapter |
+| LangChain Adapter | `@artemiskit/adapter-langchain` | LangChain chains and agents |
+| DeepAgents Adapter | `@artemiskit/adapter-deepagents` | DeepAgents multi-agent systems |
 
 ## Choose Your Path
 
 <CardGrid>
   <Card title="CLI (@artemiskit/cli)" icon="terminal">
     Start here. Run evaluations from the terminal, integrate with CI/CD, generate reports. Most teams use this.
-    
+
     [Get started →](/docs/cli/getting-started/)
   </Card>
-  <Card title="API (@artemiskit/core)" icon="puzzle">
-    Embed evaluations in your code, test frameworks (Jest, Vitest), or custom tooling. SDK coming in v0.3.0.
-    
-    [Learn more →](/docs/api/)
+  <Card title="SDK (@artemiskit/sdk)" icon="puzzle">
+    Embed evaluations in your code. Includes Guardian Mode for runtime protection, Jest/Vitest matchers, and programmatic evaluation API.
+
+    [Learn more →](/docs/sdk/)
   </Card>
 </CardGrid>
 
@@ -52,6 +58,8 @@ akit run scenarios/hello-world.yaml
 ## What's Next
 
 - [CLI Overview](/docs/cli/) — Commands, options, configuration
+- [SDK Overview](/docs/sdk/) — Programmatic API, Guardian Mode, test matchers
+- [Guardian Mode](/docs/sdk/guardian/) — Runtime protection for AI applications
 - [Providers](/docs/cli/providers/) — OpenAI, Anthropic, Azure, Vercel AI SDK
+- [Agentic Adapters](/docs/sdk/adapters/) — LangChain, DeepAgents integration
 - [Storage](/docs/cli/storage/) — Local or Supabase result storage
-- [API Reference](/docs/api/) — Programmatic SDK (v0.3.0)
