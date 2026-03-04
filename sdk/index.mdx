@@ -1,0 +1,153 @@
+---
+title: SDK Overview
+description: ArtemisKit SDK for programmatic LLM evaluation and runtime protection
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+# ArtemisKit SDK
+
+The ArtemisKit SDK (`@artemiskit/sdk`) provides programmatic access to LLM evaluation, testing, and **Guardian Mode** for runtime protection.
+
+## Installation
+
+```bash
+npm install @artemiskit/sdk
+```
+
+Or with other package managers:
+
+```bash
+# Bun
+bun add @artemiskit/sdk
+
+# pnpm
+pnpm add @artemiskit/sdk
+
+# Yarn
+yarn add @artemiskit/sdk
+```
+
+## Features
+
+<CardGrid>
+  <Card title="Guardian Mode" icon="shield">
+    Runtime protection for AI applications with injection detection, PII filtering, and action validation.
+  </Card>
+  <Card title="Evaluation API" icon="check">
+    Programmatic LLM evaluation with all CLI matchers available in code.
+  </Card>
+  <Card title="Test Integration" icon="puzzle">
+    Jest and Vitest matchers for LLM testing in your test suites.
+  </Card>
+  <Card title="Multi-Provider" icon="rocket">
+    Support for OpenAI, Azure, Anthropic, and more.
+  </Card>
+</CardGrid>
+
+## Quick Start
+
+### Guardian Mode (Runtime Protection)
+
+```typescript
+import { createGuardian } from '@artemiskit/sdk/guardian';
+import { createAdapter } from '@artemiskit/core';
+
+// Create your LLM client
+const client = await createAdapter({
+  provider: 'openai',
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Create guardian with protection settings
+const guardian = createGuardian({
+  mode: 'guardian',
+  blockOnFailure: true,
+  validateInput: true,
+  validateOutput: true,
+});
+
+// Wrap your client with guardian protection
+const protectedClient = guardian.protect(client);
+
+// Now all requests go through Guardian
+const result = await protectedClient.generate({
+  prompt: 'What is the capital of France?',
+  maxTokens: 100,
+});
+```
+
+### Evaluation API
+
+```typescript
+import { ArtemisKit } from '@artemiskit/sdk';
+
+const artemis = new ArtemisKit({
+  provider: 'openai',
+  apiKey: process.env.OPENAI_API_KEY,
+  model: 'gpt-4',
+});
+
+const result = await artemis.evaluate({
+  prompt: 'What is 2+2?',
+  expected: {
+    type: 'contains',
+    values: ['4'],
+    mode: 'any',
+  },
+});
+
+console.log(result.passed); // true
+```
+
+### Jest Integration
+
+```typescript
+import { expect } from '@artemiskit/sdk/matchers/jest';
+
+describe('My LLM App', () => {
+  it('answers math questions', async () => {
+    const response = await myApp.ask('What is 2+2?');
+
+    await expect(response).toContainLLM(['4']);
+  });
+
+  it('responds appropriately', async () => {
+    const response = await myApp.ask('Hello');
+
+    await expect(response).toPassLLMGrade({
+      criteria: 'Response is friendly and helpful',
+      minScore: 0.8,
+    });
+  });
+});
+```
+
+### Vitest Integration
+
+```typescript
+import { expect } from '@artemiskit/sdk/matchers/vitest';
+
+describe('My LLM App', () => {
+  it('follows instructions', async () => {
+    const response = await myApp.ask('List 3 colors');
+
+    await expect(response).toMatchLLMSchema({
+      type: 'array',
+      items: { type: 'string' },
+      minItems: 3,
+    });
+  });
+});
+```
+
+## Documentation
+
+- [Guardian Mode](/docs/sdk/guardian/) — Runtime protection for AI apps
+- [Evaluation API](/docs/sdk/evaluation/) — Programmatic evaluation (coming soon)
+- [Test Matchers](/docs/sdk/matchers/) — Jest/Vitest integration (coming soon)
+
+## See Also
+
+- [CLI Documentation](/docs/cli/) — Command-line interface
+- [Getting Started](/docs/cli/getting-started/) — Quick start guide
