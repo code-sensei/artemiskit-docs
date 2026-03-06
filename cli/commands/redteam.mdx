@@ -29,6 +29,7 @@ akit redteam <scenario-file> [options]
 | `--mutations` | | Mutation types to apply (space-separated) | All types |
 | `--count` | `-c` | Number of mutated prompts per case | `5` |
 | `--custom-attacks` | | Path to custom attacks YAML file | None |
+| `--attack-config` | | Path to attack configuration YAML file | None |
 | `--save` | | Save results to storage | `false` |
 | `--output` | `-o` | Output directory for reports | `artemis-output` |
 | `--verbose` | `-v` | Verbose output | `false` |
@@ -120,6 +121,121 @@ This format provides several advantages:
 - **Realistic scenarios**: Simulate real-world social engineering attempts
 - **Reproducibility**: Deterministic conversation context (vs. randomly selected strategy templates)
 
+## Attack Configuration File
+
+For fine-grained control over red team testing, use an attack configuration YAML file. This allows you to:
+
+- **Explicitly enable/disable mutations** - Only mutations listed in the config are included
+- **Configure mutation-specific settings** - Customize parameters per mutation type
+- **Override by OWASP category** - Disable entire categories or set minimum severity thresholds
+
+### Basic Usage
+
+```bash
+akit redteam scenarios/chatbot.yaml --attack-config attacks.yaml
+```
+
+### Configuration Format
+
+```yaml
+# attacks.yaml
+version: "1.0"
+
+# Global defaults (reserved for future use)
+defaults:
+  severity: medium          # Minimum severity filter
+  # iterations: 3           # (Reserved) Number of iterations per mutation
+  # timeout: 30000          # (Reserved) Timeout per attack in ms
+
+# Mutation-specific configuration
+# Only mutations listed here are included (explicit opt-in)
+mutations:
+  # LLM01 - Prompt Injection
+  bad-likert-judge:
+    enabled: true
+    scaleType: effectiveness  # agreement | effectiveness | quality | realism | helpfulness | accuracy
+    useWrapper: true
+
+  crescendo:
+    enabled: true
+    steps: 5                  # Number of escalation steps (3-10)
+    strategies:
+      - educational
+      - research
+
+  deceptive-delight:
+    enabled: true
+    framings:
+      - positive
+      - helpful
+
+  # LLM05 - Improper Output Handling
+  output-injection:
+    enabled: true
+    categories:
+      - xss
+      - sqli
+      - command
+
+  # Encoding mutations
+  encoding:
+    enabled: true
+    types:
+      - base64
+      - rot13
+
+  # Multi-turn attacks
+  multi-turn:
+    enabled: true
+    maxTurns: 5
+    strategies:
+      - context_building
+      - gradual_escalation
+
+# OWASP category overrides
+owasp:
+  LLM01:
+    enabled: true
+    minSeverity: medium       # Only include medium+ severity
+  LLM05:
+    enabled: true
+    minSeverity: high
+  LLM06:
+    enabled: false            # Disable this category entirely
+```
+
+### Key Behaviors
+
+1. **Explicit Opt-In**: Only mutations explicitly listed in the `mutations` section are included. Unlisted mutations are not run.
+
+2. **OWASP Filtering**: The `owasp` section can disable entire OWASP categories or set minimum severity thresholds. If a mutation belongs to a disabled category, it won't run even if enabled in `mutations`.
+
+3. **Precedence**: `owasp` settings take precedence over individual `mutations.*.enabled` settings.
+
+### Mutation-OWASP Mapping
+
+| Mutation | OWASP Category |
+|----------|----------------|
+| `bad-likert-judge` | LLM01 |
+| `crescendo` | LLM01 |
+| `deceptive-delight` | LLM01 |
+| `encoding` | LLM01 |
+| `multi-turn` | LLM01 |
+| `output-injection` | LLM02 |
+| `excessive-agency` | LLM08 |
+| `system-extraction` | LLM06 |
+| `hallucination-trap` | LLM09 |
+
+### Generate Example Config
+
+To generate a full example configuration file:
+
+```bash
+# Coming soon: akit redteam --generate-config > attacks.yaml
+```
+
+For now, copy the example above and customize as needed.
+
 ## Examples
 
 ### Basic Red Team
@@ -169,6 +285,19 @@ Load custom attack definitions from a YAML file:
 ```bash
 akit redteam scenarios/chatbot.yaml --custom-attacks my-attacks.yaml
 ```
+
+### Using Attack Configuration
+
+Fine-tune your red team testing with a configuration file:
+
+```bash
+akit redteam scenarios/chatbot.yaml --attack-config attacks.yaml
+```
+
+This is useful for:
+- Running only specific OWASP categories
+- Customizing mutation parameters
+- Enforcing minimum severity thresholds
 
 ### Using Custom Multi-Turn Scenarios
 
