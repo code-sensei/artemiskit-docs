@@ -1,0 +1,379 @@
+---
+title: Scenario Builders
+description: Type-safe fluent API for building LLM evaluation scenarios programmatically
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Scenario Builders
+
+The ArtemisKit SDK provides a type-safe fluent API for building evaluation scenarios programmatically, without writing YAML files.
+
+<Aside type="note" title="New in v0.3.3">
+  Scenario builders provide full TypeScript type safety and IntelliSense support for creating scenarios in code.
+</Aside>
+
+## Installation
+
+Builders are included in the main SDK package:
+
+```bash
+bun add @artemiskit/sdk
+```
+
+Import from the builders subpath:
+
+```typescript
+import { scenario, testCase, contains, exact } from '@artemiskit/sdk/builders';
+```
+
+## Quick Start
+
+```typescript
+import { scenario, testCase, contains, exact, regex } from '@artemiskit/sdk/builders';
+import { ArtemisKit } from '@artemiskit/sdk';
+
+// Build a scenario programmatically
+const myScenario = scenario('api-response-tests')
+  .description('Test API response quality')
+  .provider('openai')
+  .model('gpt-4o')
+  .cases([
+    testCase('greeting')
+      .prompt('Say hello to the user')
+      .expect(contains(['hello', 'hi', 'hey'])),
+
+    testCase('math-calculation')
+      .prompt('What is 15 + 27?')
+      .expect(exact('42')),
+
+    testCase('code-output')
+      .prompt('Write a function that returns true')
+      .expect(regex(/return\s+true/)),
+  ])
+  .build();
+
+// Run the scenario
+const kit = new ArtemisKit({ project: 'my-project' });
+const results = await kit.run({ scenario: myScenario });
+```
+
+## Scenario Builder
+
+The `scenario()` function creates a new scenario builder:
+
+```typescript
+import { scenario } from '@artemiskit/sdk/builders';
+
+const myScenario = scenario('scenario-name')
+  .description('What this scenario tests')
+  .provider('openai')           // 'openai' | 'anthropic' | 'azure-openai' | etc.
+  .model('gpt-4o')
+  .timeout(30000)               // Timeout per case in ms
+  .retries(2)                   // Retry failed cases
+  .tags(['smoke', 'critical'])  // Tags for filtering
+  .variables({                  // Variables for interpolation
+    userName: 'Alice',
+    topic: 'TypeScript',
+  })
+  .cases([...])
+  .build();
+```
+
+### Scenario Methods
+
+| Method | Description |
+|--------|-------------|
+| `description(text)` | Set scenario description |
+| `provider(name)` | Set LLM provider |
+| `model(name)` | Set model name |
+| `timeout(ms)` | Set timeout per case |
+| `retries(count)` | Set retry count |
+| `tags(tags[])` | Add tags for filtering |
+| `variables(obj)` | Set variables for interpolation |
+| `cases(cases[])` | Add test cases |
+| `build()` | Build the final scenario object |
+
+## Test Case Builder
+
+The `testCase()` function creates individual test cases:
+
+```typescript
+import { testCase, contains } from '@artemiskit/sdk/builders';
+
+const tc = testCase('case-id')
+  .prompt('Your prompt here')
+  .systemPrompt('Optional system prompt')
+  .expect(contains(['expected', 'values']))
+  .tags(['smoke'])
+  .timeout(10000)
+  .build();
+```
+
+### Test Case Methods
+
+| Method | Description |
+|--------|-------------|
+| `prompt(text)` | Set the user prompt |
+| `systemPrompt(text)` | Set system prompt |
+| `messages(msgs[])` | Set full message array |
+| `expect(expectation)` | Set expected output |
+| `tags(tags[])` | Add tags |
+| `timeout(ms)` | Override timeout |
+| `build()` | Build the test case object |
+
+### Multi-turn Conversations
+
+```typescript
+const tc = testCase('conversation')
+  .messages([
+    { role: 'system', content: 'You are a helpful assistant' },
+    { role: 'user', content: 'Hello!' },
+    { role: 'assistant', content: 'Hi there! How can I help?' },
+    { role: 'user', content: 'What is 2+2?' },
+  ])
+  .expect(contains(['4']))
+  .build();
+```
+
+## Expectation Builders
+
+### `contains(values, options?)`
+
+Check if response contains specified values:
+
+```typescript
+import { contains } from '@artemiskit/sdk/builders';
+
+// Any of the values (default)
+contains(['hello', 'hi', 'hey'])
+
+// All values required
+contains(['hello', 'world'], { mode: 'all' })
+
+// Case insensitive
+contains(['HELLO'], { caseInsensitive: true })
+```
+
+### `notContains(values)`
+
+Check that response does NOT contain values:
+
+```typescript
+import { notContains } from '@artemiskit/sdk/builders';
+
+notContains(['error', 'failed', 'exception'])
+```
+
+### `exact(value)`
+
+Exact string match:
+
+```typescript
+import { exact } from '@artemiskit/sdk/builders';
+
+exact('42')
+exact('Hello, World!')
+```
+
+### `regex(pattern)`
+
+Regular expression match:
+
+```typescript
+import { regex } from '@artemiskit/sdk/builders';
+
+regex(/\d{4}-\d{2}-\d{2}/)  // Date pattern
+regex(/^(yes|no)$/i)         // Yes/No with flags
+regex('\\d+')                // String pattern
+```
+
+### `fuzzy(value, options?)`
+
+Fuzzy string matching using Levenshtein distance:
+
+```typescript
+import { fuzzy } from '@artemiskit/sdk/builders';
+
+fuzzy('Hello World', { threshold: 0.8 })
+```
+
+### `similarity(value, options?)`
+
+Semantic similarity matching:
+
+```typescript
+import { similarity } from '@artemiskit/sdk/builders';
+
+// Embedding-based (default)
+similarity('A friendly greeting', { threshold: 0.85 })
+
+// LLM-based semantic comparison
+similarity('A helpful response', { mode: 'llm', threshold: 0.9 })
+```
+
+### `llmGrade(rubric, options?)`
+
+LLM-as-judge grading:
+
+```typescript
+import { llmGrade } from '@artemiskit/sdk/builders';
+
+llmGrade('Response should be helpful, accurate, and concise', {
+  threshold: 0.8,
+})
+
+llmGrade('Is this a valid JSON response?', {
+  threshold: 0.9,
+  model: 'gpt-4o',  // Override grader model
+})
+```
+
+### `jsonSchema(schema)`
+
+Validate JSON output against a schema:
+
+```typescript
+import { jsonSchema } from '@artemiskit/sdk/builders';
+
+jsonSchema({
+  type: 'object',
+  required: ['name', 'age'],
+  properties: {
+    name: { type: 'string' },
+    age: { type: 'number', minimum: 0 },
+    email: { type: 'string', format: 'email' },
+  },
+})
+```
+
+### `allOf(...expectations)` / `anyOf(...expectations)`
+
+Combine multiple expectations:
+
+```typescript
+import { allOf, anyOf, contains, regex } from '@artemiskit/sdk/builders';
+
+// All must pass
+allOf(
+  contains(['hello']),
+  regex(/\d+/),
+)
+
+// At least one must pass
+anyOf(
+  exact('yes'),
+  exact('no'),
+  contains(['maybe']),
+)
+```
+
+## Complete Example
+
+```typescript
+import {
+  scenario,
+  testCase,
+  contains,
+  exact,
+  regex,
+  jsonSchema,
+  llmGrade,
+  allOf,
+} from '@artemiskit/sdk/builders';
+import { ArtemisKit } from '@artemiskit/sdk';
+
+const apiTestScenario = scenario('api-quality-tests')
+  .description('Comprehensive API response quality tests')
+  .provider('openai')
+  .model('gpt-4o')
+  .timeout(30000)
+  .tags(['api', 'quality'])
+  .variables({
+    apiVersion: 'v2',
+  })
+  .cases([
+    testCase('greeting-response')
+      .prompt('Greet the user warmly')
+      .expect(contains(['hello', 'hi', 'welcome']))
+      .tags(['smoke']),
+
+    testCase('json-output')
+      .prompt('Return a JSON object with name and age')
+      .expect(jsonSchema({
+        type: 'object',
+        required: ['name', 'age'],
+        properties: {
+          name: { type: 'string' },
+          age: { type: 'number' },
+        },
+      })),
+
+    testCase('code-generation')
+      .systemPrompt('You are a helpful coding assistant')
+      .prompt('Write a TypeScript function that adds two numbers')
+      .expect(allOf(
+        contains(['function']),
+        regex(/:\s*number/),  // Return type
+      )),
+
+    testCase('helpful-response')
+      .prompt('Explain what an API is to a beginner')
+      .expect(llmGrade(
+        'Response should be clear, accurate, and appropriate for beginners',
+        { threshold: 0.85 }
+      )),
+  ])
+  .build();
+
+// Run the scenario
+const kit = new ArtemisKit({
+  provider: 'openai',
+  model: 'gpt-4o',
+  project: 'api-tests',
+});
+
+const results = await kit.run({ scenario: apiTestScenario });
+
+console.log(`Pass rate: ${results.manifest.metrics.pass_rate * 100}%`);
+```
+
+## Type Safety
+
+All builders are fully typed. TypeScript will catch errors at compile time:
+
+```typescript
+import { testCase, contains } from '@artemiskit/sdk/builders';
+
+// TypeScript error: 'invald' is not a valid mode
+contains(['hello'], { mode: 'invald' });
+
+// TypeScript error: threshold must be a number
+llmGrade('rubric', { threshold: 'high' });
+
+// TypeScript error: missing required 'prompt' or 'messages'
+testCase('test').expect(contains(['x'])).build();
+```
+
+## Type Contracts
+
+For maximum type safety, use the contract types:
+
+```typescript
+import type {
+  ScenarioContract,
+  TestCaseContract,
+  ExpectationContract,
+} from '@artemiskit/sdk/contracts';
+
+const myScenario: ScenarioContract = {
+  name: 'typed-scenario',
+  cases: [...],
+};
+```
+
+## See Also
+
+- [Evaluation API](/docs/sdk/evaluation/) — Running evaluations
+- [Scenario Format](/docs/cli/scenarios/format/) — YAML scenario reference
+- [Expectations](/docs/cli/scenarios/expectations/) — All expectation types

@@ -41,6 +41,85 @@ console.log(`Pass rate: ${results.manifest.metrics.pass_rate * 100}%`);
 console.log(`Success: ${results.success}`);
 ```
 
+## Scenario Validation (v0.3.3)
+
+Validate scenario files before execution for CI/CD pre-flight checks:
+
+```typescript
+const validation = await kit.validate({
+  scenario: './scenarios/**/*.yaml',  // File path(s) or glob pattern
+  strict: false,                       // Fail on warnings (default: false)
+});
+
+if (!validation.valid) {
+  console.error('Scenarios invalid:');
+  for (const error of validation.errors) {
+    console.error(`  ${error.file}: ${error.message}`);
+  }
+  process.exit(1);
+}
+
+console.log(`Validated ${validation.scenarios.length} scenarios`);
+```
+
+### Validation Result
+
+```typescript
+interface ValidationResult {
+  valid: boolean;
+  scenarios: ScenarioValidation[];
+  errors: ValidationError[];
+  warnings: ValidationWarning[];
+}
+
+interface ScenarioValidation {
+  file: string;
+  name: string;
+  valid: boolean;
+  caseCount: number;
+  errors: ValidationError[];
+  warnings: ValidationWarning[];
+}
+```
+
+## Regression Detection (v0.3.3)
+
+Compare two test runs for regression detection:
+
+```typescript
+const comparison = await kit.compare({
+  baseline: 'baseline-run-id',  // Run ID or 'latest' or baseline name
+  current: 'current-run-id',    // Run ID
+  threshold: 0.05,              // Regression threshold (default: 0.05)
+});
+
+if (comparison.regression) {
+  console.error('Regression detected!');
+  console.error(`Pass rate delta: ${comparison.delta.passRate}%`);
+  console.error(`Added cases: ${comparison.addedCases.length}`);
+  console.error(`Removed cases: ${comparison.removedCases.length}`);
+  process.exit(1);
+}
+```
+
+### Comparison Result
+
+```typescript
+interface ComparisonResult {
+  regression: boolean;
+  delta: {
+    passRate: number;      // Difference in pass rate
+    avgLatency: number;    // Difference in avg latency
+    totalCases: number;    // Difference in case count
+  };
+  baseline: RunSummary;
+  current: RunSummary;
+  addedCases: string[];    // Cases in current but not baseline
+  removedCases: string[];  // Cases in baseline but not current
+  changedCases: CaseComparison[];
+}
+```
+
 ## Configuration
 
 ```typescript

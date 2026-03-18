@@ -1,6 +1,6 @@
 ---
 title: Guardian Mode
-description: Runtime protection for AI/LLM applications with injection detection, action validation, and content filtering
+description: Runtime protection for AI/LLM applications with semantic validation, injection detection, and content filtering
 ---
 
 import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
@@ -9,14 +9,19 @@ import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
 
 Guardian Mode provides runtime protection for AI/LLM applications. It intercepts requests and responses to detect and block harmful content, unauthorized actions, and security threats.
 
+<Aside type="note" title="v0.3.3 Updates">
+  Guardian now features **semantic validation** (LLM-as-judge), **mode normalization** with deprecation warnings, and the **shouldBlockViolation** callback for fine-grained control.
+</Aside>
+
 <Aside type="tip">
-  Guardian Mode is designed for production use. It adds minimal latency while providing comprehensive protection.
+  Guardian Mode is designed for production use. Semantic validation provides deeper threat detection than pattern matching alone.
 </Aside>
 
 ## Features
 
 | Feature | Description |
 |---------|-------------|
+| **Semantic Validation** | LLM-as-judge content validation for threats patterns miss *(new)* |
 | **Prompt Injection Detection** | Detect and block injection attempts, jailbreaks, and role hijacking |
 | **PII Detection & Redaction** | Identify and optionally redact sensitive data (emails, SSNs, API keys) |
 | **Content Filtering** | Filter harmful content by category (violence, hate speech, illegal, etc.) |
@@ -42,8 +47,11 @@ npm install @artemiskit/sdk
    import { createGuardian } from '@artemiskit/sdk/guardian';
 
    const guardian = createGuardian({
-     mode: 'guardian',
-     blockOnFailure: true,
+     mode: 'selective',  // 'observe' | 'selective' | 'strict'
+     contentValidation: {
+       strategy: 'semantic',  // LLM-based validation
+       semanticThreshold: 0.9,
+     },
    });
    ```
 
@@ -90,13 +98,29 @@ npm install @artemiskit/sdk
 import { createGuardian, type GuardianConfig } from '@artemiskit/sdk/guardian';
 
 const config: GuardianConfig = {
-  // Operating mode
-  mode: 'guardian', // 'testing' | 'guardian' | 'hybrid'
+  // Operating mode (new canonical names)
+  mode: 'selective', // 'observe' | 'selective' | 'strict'
 
   // Validation settings
   validateInput: true,   // Validate user inputs
   validateOutput: true,  // Validate LLM outputs
-  blockOnFailure: true,  // Block requests on violations
+
+  // Content validation strategy (new in v0.3.3)
+  contentValidation: {
+    strategy: 'semantic',     // 'semantic' | 'pattern' | 'hybrid' | 'off'
+    semanticThreshold: 0.9,   // Confidence threshold for blocking
+    categories: ['prompt_injection', 'jailbreak', 'pii_disclosure'],
+    patterns: {
+      enabled: true,          // Also run pattern matching
+      caseInsensitive: true,
+    },
+  },
+
+  // Fine-grained blocking control (new in v0.3.3)
+  shouldBlockViolation: (violation) => {
+    // Only block high/critical in selective mode
+    return ['high', 'critical'].includes(violation.severity);
+  },
 
   // Logging
   enableLogging: true,
@@ -110,6 +134,9 @@ const config: GuardianConfig = {
 
   // Custom policy (optional)
   policy: myCustomPolicy,
+
+  // LLM client for semantic validation (uses parent by default)
+  llmClient: myLLMClient,
 
   // Allowed actions for agent validation
   allowedActions: [
@@ -135,28 +162,31 @@ const guardian = createGuardian(config);
 
 Guardian supports three operating modes for different use cases:
 
-| Mode | Description | Use Case |
-|------|-------------|----------|
-| `testing` | Records violations, never blocks | Development, tuning guardrails |
-| `guardian` | Full protection, blocks all violations | Production, strict security |
-| `hybrid` | Blocks critical/high, warns medium/low | Balanced production |
+| Mode | Legacy Name | Description | Use Case |
+|------|-------------|-------------|----------|
+| `observe` | `testing` | Records violations, never blocks | Development, tuning guardrails |
+| `strict` | `guardian` | Full protection, blocks all violations | Production, strict security |
+| `selective` | `hybrid` | Blocks critical/high, warns medium/low | Balanced production |
 
-### Testing Mode
+<Aside type="caution" title="Mode Normalization (v0.3.3)">
+  Legacy mode names (`testing`, `guardian`, `hybrid`) still work but emit deprecation warnings. Update to the new canonical names: `observe`, `strict`, `selective`.
+</Aside>
 
-Use testing mode during development to understand what Guardian would block without affecting your application:
+### Observe Mode
+
+Use observe mode during development to understand what Guardian would block without affecting your application:
 
 ```typescript
 import { createGuardian } from '@artemiskit/sdk';
 
 const guardian = createGuardian({
-  mode: 'testing',
+  mode: 'observe',  // was: 'testing'
   validateInput: true,
   validateOutput: true,
-  blockOnFailure: false, // Never blocks in testing mode
   enableLogging: true,
   onEvent: (event) => {
     if (event.type === 'violation_detected') {
-      console.log('[TESTING] Would block:', event.data.violation);
+      console.log('[OBSERVE] Would block:', event.data.violation);
     }
   },
 });
@@ -175,22 +205,21 @@ console.log('Violations detected:', metrics.totalViolations);
 console.log('Would have blocked:', metrics.blockedRequests);
 ```
 
-**When to use testing mode:**
+**When to use observe mode:**
 - Initial Guardian deployment
 - Tuning guardrail sensitivity
 - Understanding false positives
 - Development and debugging
 
-### Guardian Mode
+### Strict Mode
 
-Use guardian mode in production for maximum protection:
+Use strict mode in production for maximum protection:
 
 ```typescript
 const guardian = createGuardian({
-  mode: 'guardian',
+  mode: 'strict',  // was: 'guardian'
   validateInput: true,
   validateOutput: true,
-  blockOnFailure: true, // Always blocks on violations
   enableLogging: true,
 });
 
@@ -206,58 +235,46 @@ try {
 }
 ```
 
-**When to use guardian mode:**
+**When to use strict mode:**
 - Production deployments
 - High-security applications
 - Regulated industries (healthcare, finance)
 - When security is paramount
 
-### Hybrid Mode
+### Selective Mode
 
-Use hybrid mode for balanced protection that blocks critical threats while allowing edge cases through with warnings:
+Use selective mode for balanced protection that blocks critical threats while allowing edge cases through with warnings:
 
 ```typescript
 const guardian = createGuardian({
-  mode: 'hybrid',
+  mode: 'selective',  // was: 'hybrid'
   validateInput: true,
   validateOutput: true,
   enableLogging: true,
-  policy: {
-    name: 'hybrid-policy',
-    rules: [
-      {
-        id: 'injection',
-        type: 'injection_detection',
-        severity: 'critical',
-        action: 'block', // Always block injections
-      },
-      {
-        id: 'pii',
-        type: 'pii_detection',
-        severity: 'medium',
-        action: 'warn', // Warn but allow PII
-      },
-    ],
+  // Fine-grained control over which violations block
+  shouldBlockViolation: (violation) => {
+    // Only block high and critical severity
+    return ['high', 'critical'].includes(violation.severity);
   },
 });
 ```
 
-**How hybrid mode works:**
+**How selective mode works:**
 - `critical` severity → Always blocked
 - `high` severity → Blocked by default
 - `medium` severity → Warned, not blocked
 - `low` severity → Logged only
 
-**When to use hybrid mode:**
+**When to use selective mode:**
 - Balanced production environments
 - When some flexibility is needed
-- Gradual migration from testing to full protection
+- Gradual migration from observe to full protection
 - Applications with mixed sensitivity requirements
 
 ### Mode Comparison
 
-| Behavior | Testing | Guardian | Hybrid |
-|----------|---------|----------|--------|
+| Behavior | Observe | Strict | Selective |
+|----------|---------|--------|-----------|
 | Blocks critical | No | Yes | Yes |
 | Blocks high | No | Yes | Yes |
 | Blocks medium | No | Yes | No (warns) |
@@ -265,6 +282,97 @@ const guardian = createGuardian({
 | Circuit breaker | Disabled | Enabled | Enabled |
 | Rate limiting | Disabled | Enabled | Enabled |
 | PII redaction | Optional | Yes | Yes |
+| Semantic validation | Optional | Yes | Yes |
+
+## Semantic Validation
+
+Semantic validation uses an LLM-as-judge pattern to detect threats that pattern matching might miss. This is the recommended approach for production.
+
+```typescript
+import { createGuardian } from '@artemiskit/sdk';
+
+const guardian = createGuardian({
+  mode: 'selective',
+  contentValidation: {
+    strategy: 'semantic',      // 'semantic' | 'pattern' | 'hybrid' | 'off'
+    semanticThreshold: 0.9,    // Confidence threshold (0-1)
+    categories: [
+      'prompt_injection',
+      'jailbreak',
+      'pii_disclosure',
+      'role_manipulation',
+      'data_extraction',
+      'content_safety',
+    ],
+  },
+});
+```
+
+### Content Validation Strategies
+
+| Strategy | Description | Use Case |
+|----------|-------------|----------|
+| `semantic` | LLM-based validation (recommended) | Production, high accuracy |
+| `pattern` | Regex pattern matching | Low latency, known patterns |
+| `hybrid` | Both semantic + pattern | Maximum coverage |
+| `off` | Disable content validation | When using external validators |
+
+### Semantic vs Pattern Matching
+
+```typescript
+// Semantic: catches novel attacks patterns don't know about
+const semantic = createGuardian({
+  contentValidation: { strategy: 'semantic' },
+});
+
+// Pattern: faster, good for known attack signatures
+const pattern = createGuardian({
+  contentValidation: {
+    strategy: 'pattern',
+    patterns: {
+      enabled: true,
+      caseInsensitive: true,
+      customPatterns: ['ignore.*instructions', 'reveal.*prompt'],
+    },
+  },
+});
+
+// Hybrid: both for maximum protection
+const hybrid = createGuardian({
+  contentValidation: {
+    strategy: 'hybrid',
+    semanticThreshold: 0.85,
+    patterns: { enabled: true },
+  },
+});
+```
+
+### Semantic Validator Standalone
+
+Use the semantic validator directly for custom validation flows:
+
+```typescript
+import { createSemanticValidator } from '@artemiskit/sdk';
+
+const validator = createSemanticValidator(llmClient, {
+  strategy: 'semantic',
+  semanticThreshold: 0.9,
+  categories: ['prompt_injection', 'jailbreak'],
+});
+
+// Validate input
+const inputResult = await validator.validateInput(userMessage);
+if (!inputResult.valid && inputResult.shouldBlock) {
+  console.log('Blocked:', inputResult.reason);
+}
+
+// Validate output with input context (detects manipulation success)
+const outputResult = await validator.validateOutput(llmResponse, userMessage);
+
+// Use as a guardrail function
+const guardrail = validator.asGuardrail('input');
+const result = await guardrail(content, { requestId: '123' });
+```
 
 ## Custom Policies
 

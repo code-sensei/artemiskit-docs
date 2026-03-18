@@ -9,6 +9,10 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 
 The ArtemisKit SDK (`@artemiskit/sdk`) provides programmatic access to LLM evaluation, testing, and **Guardian Mode** for runtime protection.
 
+<Aside type="note" title="Version 0.3.3">
+  Latest release includes semantic validation (LLM-as-judge), programmatic scenario builders, and Guardian mode normalization. [See changelog →](https://github.com/code-sensei/artemiskit/releases/tag/@artemiskit/sdk@0.3.3)
+</Aside>
+
 ## Installation
 
 ```bash
@@ -32,16 +36,24 @@ yarn add @artemiskit/sdk
 
 <CardGrid>
   <Card title="Guardian Mode" icon="shield">
-    Runtime protection for AI applications with injection detection, PII filtering, and action validation.
+    Runtime protection with semantic validation, injection detection, PII filtering, and action validation.
     [Learn more →](/docs/sdk/guardian/)
   </Card>
   <Card title="Evaluation API" icon="check">
     Programmatic LLM evaluation with all CLI evaluators available in code.
     [Learn more →](/docs/sdk/evaluation/)
   </Card>
+  <Card title="Scenario Builders" icon="document">
+    Type-safe fluent API for building scenarios programmatically without YAML.
+    [Learn more →](/docs/sdk/builders/)
+  </Card>
   <Card title="Test Integration" icon="puzzle">
     Jest and Vitest matchers for LLM testing in your test suites.
     [Learn more →](/docs/sdk/matchers/)
+  </Card>
+  <Card title="Validation & Comparison" icon="list-format">
+    Pre-flight scenario validation and regression detection between runs.
+    [Learn more →](/docs/sdk/evaluation/)
   </Card>
   <Card title="Agentic Adapters" icon="rocket">
     Test LangChain chains/agents and DeepAgents multi-agent systems.
@@ -67,10 +79,13 @@ const client = await createAdapter({
 
 // Create guardian with protection settings
 const guardian = createGuardian({
-  mode: 'guardian',        // 'testing' | 'guardian' | 'hybrid'
-  blockOnFailure: true,
+  mode: 'selective',       // 'observe' | 'selective' | 'strict'
   validateInput: true,
   validateOutput: true,
+  contentValidation: {
+    strategy: 'semantic',  // LLM-as-judge validation (new in 0.3.3)
+    semanticThreshold: 0.9,
+  },
 });
 
 // Wrap your client with guardian protection
@@ -81,6 +96,43 @@ const result = await protectedClient.generate({
   prompt: 'What is the capital of France?',
   maxTokens: 100,
 });
+```
+
+### Scenario Validation (CI/CD)
+
+Validate scenarios before execution for pre-flight checks:
+
+```typescript
+import { ArtemisKit } from '@artemiskit/sdk';
+
+const kit = new ArtemisKit({ project: 'my-project' });
+
+// Validate scenario files
+const validation = await kit.validate({
+  scenario: './scenarios/**/*.yaml',
+  strict: true,
+});
+
+if (!validation.valid) {
+  console.error('Validation errors:', validation.errors);
+  process.exit(1);
+}
+```
+
+### Regression Detection
+
+Compare runs to detect regressions:
+
+```typescript
+const comparison = await kit.compare({
+  baseline: 'baseline-run-id',
+  current: 'current-run-id',
+  threshold: 0.05,
+});
+
+if (comparison.regression) {
+  console.error(`Regression: ${comparison.delta.passRate}% drop`);
+}
 ```
 
 ### Evaluation API
