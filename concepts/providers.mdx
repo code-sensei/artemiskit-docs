@@ -1,0 +1,288 @@
+---
+title: Providers
+description: LLM provider configurations for OpenAI, Anthropic, Azure, and more
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Providers
+
+Providers are adapters that connect ArtemisKit to different LLM services. Each provider implements a common interface, allowing you to switch between models without changing your test scenarios.
+
+## Supported Providers
+
+| Provider | Config Value | Description |
+|----------|--------------|-------------|
+| OpenAI | `openai` | GPT-4, GPT-3.5, and newer models |
+| Azure OpenAI | `azure-openai` | OpenAI models via Azure |
+| Anthropic | `anthropic` | Claude models |
+| Vercel AI | `vercel-ai` | Vercel AI SDK abstraction |
+| Google | `google` | Gemini models |
+| Mistral | `mistral` | Mistral AI models |
+| Cohere | `cohere` | Cohere models |
+| Ollama | `ollama` | Local models via Ollama |
+| LangChain | `langchain` | LangChain runnables |
+| DeepAgents | `deepagents` | DeepAgents systems |
+| Custom | `custom` | Custom adapters |
+
+## Configuration
+
+Providers can be configured at multiple levels:
+
+1. **Environment variables** — API keys and defaults
+2. **Config file** — `artemis.config.yaml`
+3. **Scenario file** — Per-scenario settings
+4. **Test case** — Per-case overrides
+
+### Environment Variables
+
+<Tabs>
+<TabItem label="OpenAI">
+```bash
+OPENAI_API_KEY=sk-...
+OPENAI_ORG_ID=org-...  # optional
+```
+</TabItem>
+<TabItem label="Azure">
+```bash
+AZURE_OPENAI_API_KEY=...
+AZURE_OPENAI_RESOURCE_NAME=my-resource
+AZURE_OPENAI_DEPLOYMENT_NAME=my-deployment
+AZURE_OPENAI_API_VERSION=2024-02-15-preview
+```
+</TabItem>
+<TabItem label="Anthropic">
+```bash
+ANTHROPIC_API_KEY=sk-ant-...
+```
+</TabItem>
+</Tabs>
+
+### Config File
+
+```yaml
+# artemis.config.yaml
+provider: openai
+model: gpt-4
+
+providers:
+  openai:
+    apiKey: ${OPENAI_API_KEY}
+    timeout: 60000
+    maxRetries: 3
+
+  anthropic:
+    apiKey: ${ANTHROPIC_API_KEY}
+
+  azure-openai:
+    apiKey: ${AZURE_OPENAI_API_KEY}
+    resourceName: my-resource
+    deploymentName: gpt-4-deployment
+    apiVersion: 2024-02-15-preview
+```
+
+### Scenario File
+
+```yaml
+name: my-scenario
+provider: openai
+model: gpt-4
+
+providerConfig:
+  timeout: 120000
+  organization: org-123
+
+cases:
+  - id: test-1
+    prompt: "Hello"
+    expected:
+      type: contains
+      values: ["hello"]
+```
+
+## Provider-Specific Configuration
+
+### OpenAI
+
+```yaml
+provider: openai
+model: gpt-4
+
+providerConfig:
+  apiKey: ${OPENAI_API_KEY}
+  baseUrl: https://api.openai.com/v1  # optional
+  organization: org-...  # optional
+  timeout: 60000
+  maxRetries: 3
+```
+
+**Supported models:** `gpt-4`, `gpt-4-turbo`, `gpt-4o`, `gpt-4o-mini`, `gpt-3.5-turbo`, and others
+
+### Azure OpenAI
+
+```yaml
+provider: azure-openai
+model: gpt-4
+
+providerConfig:
+  apiKey: ${AZURE_OPENAI_API_KEY}
+  resourceName: my-azure-resource
+  deploymentName: my-gpt4-deployment
+  apiVersion: 2024-02-15-preview
+  embeddingDeploymentName: my-embedding-deployment  # optional
+  modelFamily: gpt-4  # optional, for parameter detection
+```
+
+<Aside type="note">
+The `modelFamily` field helps ArtemisKit determine API parameter compatibility (e.g., `max_tokens` vs `max_completion_tokens`) when your deployment name doesn't match the model name.
+</Aside>
+
+### Anthropic
+
+```yaml
+provider: anthropic
+model: claude-3-5-sonnet-20241022
+
+providerConfig:
+  apiKey: ${ANTHROPIC_API_KEY}
+  timeout: 60000
+  maxRetries: 3
+```
+
+**Supported models:** `claude-3-5-sonnet-20241022`, `claude-3-opus`, `claude-3-sonnet`, `claude-3-haiku`
+
+### Vercel AI
+
+```yaml
+provider: vercel-ai
+model: gpt-4
+
+providerConfig:
+  underlyingProvider: openai  # openai | azure | anthropic | google | mistral
+  apiKey: ${OPENAI_API_KEY}
+```
+
+The Vercel AI provider wraps other providers using the Vercel AI SDK.
+
+### Ollama (Local Models)
+
+```yaml
+provider: ollama
+model: llama2
+
+providerConfig:
+  baseUrl: http://localhost:11434
+  timeout: 120000
+```
+
+<Aside type="tip">
+Ollama is great for local development and testing without API costs.
+</Aside>
+
+### LangChain
+
+```yaml
+provider: langchain
+model: my-chain
+
+providerConfig:
+  name: customer-support-chain
+  runnableType: chain  # chain | agent | llm | runnable
+  inputKey: question
+  outputKey: answer
+```
+
+### DeepAgents
+
+```yaml
+provider: deepagents
+model: my-agent
+
+providerConfig:
+  name: research-agent
+  captureTraces: true
+  captureMessages: true
+  executionTimeout: 300000
+```
+
+## Provider Interface
+
+All providers implement the `ModelClient` interface:
+
+```typescript
+interface ModelClient {
+  readonly provider: string;
+
+  generate(options: GenerateOptions): Promise<GenerateResult>;
+  stream?(options: GenerateOptions, onChunk: (chunk: string) => void): AsyncIterable<string>;
+  embed?(text: string, model?: string): Promise<number[]>;
+  capabilities(): Promise<ModelCapabilities>;
+  close?(): Promise<void>;
+}
+```
+
+### GenerateOptions
+
+```typescript
+interface GenerateOptions {
+  prompt: string | ChatMessage[];
+  model?: string;
+  maxTokens?: number;
+  temperature?: number;
+  topP?: number;
+  seed?: number;
+  stop?: string[];
+  functions?: FunctionDefinition[];
+  tools?: ToolDefinition[];
+  responseFormat?: { type: 'text' | 'json_object' };
+}
+```
+
+### GenerateResult
+
+```typescript
+interface GenerateResult {
+  id: string;
+  model: string;
+  text: string;
+  tokens: TokenUsage;
+  latencyMs: number;
+  finishReason?: 'stop' | 'length' | 'function_call' | 'tool_calls' | 'content_filter';
+  functionCall?: { name: string; arguments: string };
+  toolCalls?: ToolCall[];
+}
+```
+
+## Model Capabilities
+
+Query provider capabilities at runtime:
+
+```typescript
+const capabilities = await client.capabilities();
+// {
+//   streaming: true,
+//   functionCalling: true,
+//   toolUse: true,
+//   maxContext: 128000,
+//   vision: true,
+//   jsonMode: true
+// }
+```
+
+## Configuration Precedence
+
+When multiple configuration sources specify the same setting, ArtemisKit uses this precedence (highest to lowest):
+
+1. **CLI flags** — `--provider`, `--model`
+2. **Test case** — Case-level `provider`, `model`
+3. **Scenario file** — Scenario-level settings
+4. **Config file** — `artemis.config.yaml`
+5. **Environment variables** — API keys, defaults
+6. **Defaults** — Built-in fallbacks
+
+## See Also
+
+- [OpenAI Provider](/docs/cli/providers/openai/) — Detailed OpenAI configuration
+- [Azure Provider](/docs/cli/providers/azure/) — Azure OpenAI setup
+- [Anthropic Provider](/docs/cli/providers/anthropic/) — Claude configuration
+- [Scenarios](/docs/concepts/scenarios/) — Using providers in scenarios

@@ -1,0 +1,293 @@
+---
+title: Evaluators
+description: The evaluation engine that runs scenarios and produces results
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Evaluators
+
+Evaluators are the core of ArtemisKit's testing engine. They take LLM responses and compare them against expectations to determine pass/fail status and compute scores.
+
+## How Evaluation Works
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Prompt    │────▶│   LLM API   │────▶│  Response   │
+└─────────────┘     └─────────────┘     └─────────────┘
+                                               │
+                                               ▼
+                    ┌─────────────┐     ┌─────────────┐
+                    │   Result    │◀────│  Evaluator  │
+                    │ (pass/fail) │     │  (matcher)  │
+                    └─────────────┘     └─────────────┘
+```
+
+1. **Prompt sent** — ArtemisKit sends the prompt to the configured LLM
+2. **Response received** — The LLM generates a response
+3. **Evaluator invoked** — The appropriate evaluator processes the response
+4. **Result produced** — Pass/fail status, score, and details returned
+
+## Evaluator Interface
+
+All evaluators implement this interface:
+
+```typescript
+interface Evaluator {
+  readonly type: string;
+
+  evaluate(
+    response: string,
+    expected: Expected,
+    context?: EvaluatorContext
+  ): Promise<EvaluatorResult>;
+}
+```
+
+### Context
+
+Evaluators receive context that may include:
+
+```typescript
+interface EvaluatorContext {
+  client?: ModelClient;  // LLM client for LLM-based evaluation
+  testCase?: TestCase;   // Full test case for reference
+}
+```
+
+### Result
+
+Every evaluator returns:
+
+```typescript
+interface EvaluatorResult {
+  passed: boolean;      // Did the test pass?
+  score: number;        // 0.0 to 1.0 score
+  reason?: string;      // Human-readable explanation
+  details?: object;     // Additional metadata
+}
+```
+
+## Built-in Evaluators
+
+### String Evaluators
+
+| Evaluator | Type | Description |
+|-----------|------|-------------|
+| Contains | `contains` | Checks if response contains values |
+| Not Contains | `not_contains` | Ensures response excludes values |
+| Exact | `exact` | Requires exact string match |
+| Regex | `regex` | Matches regular expression patterns |
+
+### Similarity Evaluators
+
+| Evaluator | Type | Description |
+|-----------|------|-------------|
+| Fuzzy | `fuzzy` | Levenshtein distance matching |
+| Similarity | `similarity` | Semantic similarity (embedding or LLM) |
+
+### LLM-Based Evaluators
+
+| Evaluator | Type | Description |
+|-----------|------|-------------|
+| LLM Grader | `llm_grader` | LLM judges against rubric |
+
+### Structured Evaluators
+
+| Evaluator | Type | Description |
+|-----------|------|-------------|
+| JSON Schema | `json_schema` | Validates JSON structure |
+
+### Composite Evaluators
+
+| Evaluator | Type | Description |
+|-----------|------|-------------|
+| Combined | `combined` | AND/OR logic for multiple expectations |
+| Inline | `inline` | Custom JavaScript expressions |
+
+## Evaluator Selection
+
+ArtemisKit automatically selects the evaluator based on the `type` field:
+
+```yaml
+expected:
+  type: contains  # ← Selects ContainsEvaluator
+  values: ["hello"]
+```
+
+The evaluator registry maps types to implementations:
+
+```typescript
+const evaluators = {
+  'contains': new ContainsEvaluator(),
+  'not_contains': new NotContainsEvaluator(),
+  'exact': new ExactEvaluator(),
+  'regex': new RegexEvaluator(),
+  'fuzzy': new FuzzyEvaluator(),
+  'similarity': new SimilarityEvaluator(),
+  'llm_grader': new LLMGraderEvaluator(),
+  'json_schema': new JsonSchemaEvaluator(),
+  'combined': new CombinedEvaluator(),
+  'inline': new InlineEvaluator(),
+  'custom': new CustomEvaluator(),
+};
+```
+
+## Scoring
+
+Evaluators use different scoring strategies:
+
+### Binary Scoring
+
+Some evaluators return 0 or 1:
+
+- `exact` — 1 if exact match, 0 otherwise
+- `contains` — 1 if all/any values found, 0 otherwise
+- `regex` — 1 if pattern matches, 0 otherwise
+
+### Continuous Scoring
+
+Others return values between 0 and 1:
+
+- `fuzzy` — Similarity ratio (0.0-1.0)
+- `similarity` — Semantic similarity score
+- `llm_grader` — LLM-assigned score based on rubric
+
+### Threshold-Based Passing
+
+Many evaluators use thresholds:
+
+```yaml
+expected:
+  type: fuzzy
+  value: "Hello world"
+  threshold: 0.8  # Pass if score >= 0.8
+```
+
+## Evaluation Flow
+
+### Single Case Evaluation
+
+```typescript
+// Simplified evaluation flow
+async function evaluateCase(testCase, client) {
+  // 1. Send prompt to LLM
+  const result = await client.generate({
+    prompt: testCase.prompt,
+    model: testCase.model,
+  });
+
+  // 2. Get appropriate evaluator
+  const evaluator = getEvaluator(testCase.expected.type);
+
+  // 3. Evaluate response
+  const evalResult = await evaluator.evaluate(
+    result.text,
+    testCase.expected,
+    { client, testCase }
+  );
+
+  return {
+    caseId: testCase.id,
+    response: result.text,
+    ...evalResult,
+  };
+}
+```
+
+### Scenario Evaluation
+
+```typescript
+// Simplified scenario runner
+async function runScenario(scenario) {
+  const results = [];
+
+  for (const testCase of scenario.cases) {
+    const result = await evaluateCase(testCase, client);
+    results.push(result);
+  }
+
+  return {
+    scenario: scenario.name,
+    passed: results.every(r => r.passed),
+    results,
+    stats: computeStats(results),
+  };
+}
+```
+
+## Custom Evaluators
+
+Create custom evaluators for specialized needs:
+
+```typescript
+import type { Evaluator, EvaluatorResult, Expected, EvaluatorContext } from '@artemiskit/core';
+
+class MyCustomEvaluator implements Evaluator {
+  readonly type = 'my_custom';
+
+  async evaluate(
+    response: string,
+    expected: Expected,
+    context?: EvaluatorContext
+  ): Promise<EvaluatorResult> {
+    // Your custom evaluation logic
+    const score = this.computeScore(response, expected);
+
+    return {
+      passed: score >= (expected.threshold ?? 0.5),
+      score,
+      reason: `Custom evaluation score: ${score}`,
+      details: {
+        responseLength: response.length,
+      },
+    };
+  }
+
+  private computeScore(response: string, expected: Expected): number {
+    // Custom scoring logic
+    return 0.85;
+  }
+}
+```
+
+Register custom evaluators:
+
+```typescript
+import { registerEvaluator } from '@artemiskit/core';
+
+registerEvaluator('my_custom', new MyCustomEvaluator());
+```
+
+Use in scenarios:
+
+```yaml
+expected:
+  type: custom
+  evaluator: my_custom
+  config:
+    threshold: 0.7
+```
+
+## Evaluation Metrics
+
+### Per-Case Metrics
+
+- **passed** — Boolean pass/fail
+- **score** — Numeric score (0-1)
+- **latencyMs** — Response time
+- **tokens** — Token usage (prompt, completion, total)
+
+### Aggregate Metrics
+
+- **passRate** — Percentage of cases that passed
+- **avgScore** — Average score across cases
+- **avgLatency** — Average response time
+- **totalTokens** — Total token usage
+- **cost** — Estimated API cost
+
+## See Also
+
+- [Expectations](/docs/concepts/expectations/) — Expectation types and configuration
+- [Scenarios](/docs/concepts/scenarios/) — Test suite structure
+- [SDK Evaluation](/docs/sdk/evaluation/) — Programmatic evaluation API

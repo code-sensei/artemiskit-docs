@@ -1,0 +1,76 @@
+---
+title: Core Concepts
+description: Understand the fundamental concepts behind ArtemisKit
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# Core Concepts
+
+ArtemisKit is built around a few key concepts that apply across both the CLI and SDK. Understanding these will help you get the most out of the toolkit.
+
+<CardGrid>
+  <Card title="Scenarios" icon="document">
+    Test suites containing prompts and expectations for evaluating LLM outputs.
+    [Learn more →](/docs/concepts/scenarios/)
+  </Card>
+  <Card title="Expectations" icon="check">
+    Matchers that define how to evaluate LLM responses against expected behavior.
+    [Learn more →](/docs/concepts/expectations/)
+  </Card>
+  <Card title="Providers" icon="setting">
+    LLM provider configurations for OpenAI, Anthropic, Azure, and more.
+    [Learn more →](/docs/concepts/providers/)
+  </Card>
+  <Card title="Evaluators" icon="list-format">
+    The evaluation engine that runs scenarios and produces results.
+    [Learn more →](/docs/concepts/evaluators/)
+  </Card>
+</CardGrid>
+
+## How It All Fits Together
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        ArtemisKit                           │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
+│  │  Scenarios  │───▶│  Evaluators │───▶│   Results   │     │
+│  │  (YAML/TS)  │    │  (Matchers) │    │  (Reports)  │     │
+│  └─────────────┘    └─────────────┘    └─────────────┘     │
+│         │                  │                  │             │
+│         ▼                  ▼                  ▼             │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
+│  │   Provider  │    │  Guardian   │    │   Storage   │     │
+│  │  (LLM API)  │    │ (Protection)│    │  (History)  │     │
+│  └─────────────┘    └─────────────┘    └─────────────┘     │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Typical Workflow
+
+1. **Define scenarios** — Write test cases in YAML files or TypeScript using builders
+2. **Configure providers** — Set up API keys and model settings
+3. **Run evaluations** — Execute scenarios via CLI (`akit run`) or SDK (`kit.run()`)
+4. **Review results** — Analyze pass/fail rates, latency, and detailed responses
+5. **Iterate** — Refine prompts, adjust expectations, improve your LLM application
+
+## Shared Concepts
+
+These concepts work the same way whether you're using the CLI or SDK:
+
+| Concept | CLI | SDK |
+|---------|-----|-----|
+| **Scenarios** | YAML files | YAML files or `scenario()` builder |
+| **Expectations** | YAML `expected` field | YAML or `contains()`, `exact()`, etc. |
+| **Providers** | Config file or `--provider` flag | `ArtemisKit({ provider: '...' })` |
+| **Results** | Terminal output + reports | `RunResult` object |
+| **Storage** | `artemis-output/` directory | Configurable via `storage` option |
+
+## Next Steps
+
+- [Scenarios](/docs/concepts/scenarios/) — Learn the scenario format in depth
+- [Expectations](/docs/concepts/expectations/) — Explore all expectation types
+- [Getting Started](/docs/getting-started/) — Build your first test in 5 minutes

@@ -1,0 +1,319 @@
+---
+title: Expectations
+description: Matchers that define how to evaluate LLM responses against expected behavior
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Expectations
+
+Expectations define how ArtemisKit evaluates LLM responses. Each expectation type uses a different matching strategy, from simple string containment to LLM-based semantic grading.
+
+## Overview
+
+Every test case requires an `expected` field that specifies:
+
+- **type** — The evaluation strategy to use
+- **Type-specific fields** — Parameters for that evaluator
+
+```yaml
+expected:
+  type: contains
+  values: ["hello", "world"]
+  mode: any
+```
+
+## Expectation Types
+
+| Type | Use Case | Key Fields |
+|------|----------|------------|
+| `contains` | Response includes text | `values`, `mode` |
+| `not_contains` | Response excludes text | `values`, `mode` |
+| `exact` | Exact string match | `value`, `caseSensitive` |
+| `regex` | Pattern matching | `pattern`, `flags` |
+| `fuzzy` | Approximate match | `value`, `threshold` |
+| `similarity` | Semantic similarity | `value`, `threshold`, `mode` |
+| `llm_grader` | LLM judges quality | `rubric`, `threshold` |
+| `json_schema` | Validate JSON structure | `schema` |
+| `combined` | AND/OR logic | `operator`, `expectations` |
+| `inline` | Custom expressions | `expression` |
+| `custom` | Custom evaluator | `evaluator`, `config` |
+
+## String Matchers
+
+### contains
+
+Checks if the response contains specified text:
+
+```yaml
+expected:
+  type: contains
+  values:
+    - "hello"
+    - "world"
+  mode: any  # any | all (default: all)
+```
+
+- `mode: all` — Response must contain ALL values
+- `mode: any` — Response must contain at least ONE value
+
+### not_contains
+
+Ensures the response does NOT contain specified text:
+
+```yaml
+expected:
+  type: not_contains
+  values:
+    - "error"
+    - "I don't know"
+  mode: all  # any | all (default: all)
+```
+
+- `mode: all` — Response must NOT contain ANY of the values (passes if none match)
+- `mode: any` — Response must NOT contain at least one value
+
+### exact
+
+Requires an exact string match:
+
+```yaml
+expected:
+  type: exact
+  value: "42"
+  caseSensitive: true  # default: true
+```
+
+### regex
+
+Matches using regular expressions:
+
+```yaml
+expected:
+  type: regex
+  pattern: "\\d{4}-\\d{2}-\\d{2}"  # Date pattern
+  flags: "i"  # Optional: i, g, m flags
+```
+
+<Aside type="caution">
+Remember to double-escape backslashes in YAML: `\\d` not `\d`
+</Aside>
+
+## Similarity Matchers
+
+### fuzzy
+
+Uses Levenshtein distance for approximate string matching:
+
+```yaml
+expected:
+  type: fuzzy
+  value: "Hello, world!"
+  threshold: 0.8  # 0-1, default: 0.8
+```
+
+A threshold of 0.8 means 80% similarity is required to pass.
+
+### similarity
+
+Semantic similarity using embeddings or LLM comparison:
+
+<Tabs>
+<TabItem label="Embedding Mode">
+```yaml
+expected:
+  type: similarity
+  value: "A friendly greeting"
+  threshold: 0.75  # default: 0.75
+  mode: embedding
+  embeddingModel: text-embedding-3-small
+```
+</TabItem>
+<TabItem label="LLM Mode">
+```yaml
+expected:
+  type: similarity
+  value: "A friendly greeting"
+  threshold: 0.75
+  mode: llm
+  model: gpt-4
+```
+</TabItem>
+</Tabs>
+
+- **embedding** — Uses vector embeddings for comparison (faster, cheaper)
+- **llm** — Uses LLM to judge semantic similarity (more nuanced)
+
+## LLM-Based Evaluation
+
+### llm_grader
+
+Uses an LLM to grade the response against a rubric:
+
+```yaml
+expected:
+  type: llm_grader
+  rubric: |
+    Score the response on:
+    1. Accuracy (0-0.4)
+    2. Helpfulness (0-0.3)
+    3. Clarity (0-0.3)
+
+    Return total score 0-1.
+  threshold: 0.7  # default: 0.7
+  model: gpt-4  # optional: grader model
+  provider: openai  # optional: grader provider
+```
+
+The grader returns a score from 0 to 1. The test passes if the score meets or exceeds the threshold.
+
+<Aside type="tip">
+LLM graders are powerful for subjective quality assessment but add latency and cost. Use them for high-value evaluations.
+</Aside>
+
+## Structured Output
+
+### json_schema
+
+Validates that the response is valid JSON matching a schema:
+
+```yaml
+expected:
+  type: json_schema
+  schema:
+    type: object
+    required:
+      - name
+      - age
+    properties:
+      name:
+        type: string
+      age:
+        type: number
+        minimum: 0
+      email:
+        type: string
+        format: email
+```
+
+The evaluator:
+1. Parses the response as JSON
+2. Validates against the JSON Schema
+3. Returns validation errors if any
+
+## Composite Expectations
+
+### combined
+
+Combines multiple expectations with AND/OR logic:
+
+<Tabs>
+<TabItem label="AND Logic">
+```yaml
+expected:
+  type: combined
+  operator: and
+  expectations:
+    - type: contains
+      values: ["thank you"]
+    - type: not_contains
+      values: ["error"]
+```
+</TabItem>
+<TabItem label="OR Logic">
+```yaml
+expected:
+  type: combined
+  operator: or
+  expectations:
+    - type: exact
+      value: "yes"
+    - type: exact
+      value: "no"
+```
+</TabItem>
+</Tabs>
+
+<Aside type="note">
+Combined expectations can only contain base expectations (no nested combined). This prevents overly complex evaluation logic.
+</Aside>
+
+## Custom Evaluation
+
+### inline
+
+Write custom evaluation expressions:
+
+```yaml
+expected:
+  type: inline
+  expression: "response.length > 100 && response.includes('hello')"
+  value: "hello"  # optional: value to use in expression
+```
+
+The expression has access to:
+- `response` — The LLM response text
+- `value` — The optional value field
+
+### custom
+
+Use a custom evaluator by name:
+
+```yaml
+expected:
+  type: custom
+  evaluator: myCustomEvaluator
+  config:
+    threshold: 0.5
+    customOption: true
+```
+
+Custom evaluators must be registered with ArtemisKit before use.
+
+## Evaluation Results
+
+Every evaluator returns a consistent result structure:
+
+```typescript
+interface EvaluatorResult {
+  passed: boolean;     // Did the test pass?
+  score: number;       // 0-1 score
+  reason?: string;     // Human-readable explanation
+  details?: object;    // Additional metadata
+}
+```
+
+Example result:
+
+```json
+{
+  "passed": true,
+  "score": 0.85,
+  "reason": "Response contains 2 of 2 required values",
+  "details": {
+    "matchedValues": ["hello", "world"],
+    "mode": "all"
+  }
+}
+```
+
+## Choosing an Expectation Type
+
+| Scenario | Recommended Type |
+|----------|------------------|
+| Must include specific text | `contains` |
+| Must NOT include text | `not_contains` |
+| Exact answer expected | `exact` |
+| Pattern matching (dates, IDs) | `regex` |
+| Typo tolerance needed | `fuzzy` |
+| Semantic meaning matters | `similarity` |
+| Subjective quality assessment | `llm_grader` |
+| JSON API responses | `json_schema` |
+| Multiple conditions | `combined` |
+| Complex custom logic | `inline` |
+
+## See Also
+
+- [Scenarios](/docs/concepts/scenarios/) — Define test suites
+- [Evaluators](/docs/concepts/evaluators/) — How evaluation works
+- [Expectations Reference](/docs/cli/scenarios/expectations/) — Complete field reference

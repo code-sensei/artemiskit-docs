@@ -1,0 +1,570 @@
+---
+title: Custom Evaluators
+description: Build domain-specific evaluators for specialized LLM testing needs
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Custom Evaluators
+
+Create your own evaluators when built-in types don't match your domain-specific requirements.
+
+## Overview
+
+ArtemisKit provides 10 built-in evaluators, but you can create custom evaluators for:
+
+- **Domain-specific validation** — Medical terminology, legal clauses, financial compliance
+- **Format checking** — Custom data formats, proprietary schemas
+- **Business logic** — Company-specific rules, workflow validation
+- **External integrations** — API calls, database lookups, third-party services
+
+## Built-in Evaluators
+
+| Type | Description | Use Case |
+|------|-------------|----------|
+| `exact` | Exact string match | Deterministic outputs |
+| `contains` | Contains text(s) | Keyword presence |
+| `not_contains` | Does not contain text(s) | Safety checks |
+| `regex` | Regular expression match | Pattern validation |
+| `fuzzy` | Levenshtein similarity | Approximate matching |
+| `similarity` | Semantic similarity | Meaning comparison |
+| `llm_grader` | LLM-based grading | Quality assessment |
+| `json_schema` | JSON structure validation | Structured output |
+| `combined` | AND/OR logic | Multiple conditions |
+| `inline` | Custom expressions | Quick custom logic |
+
+## Evaluator Interface
+
+Every evaluator implements this interface:
+
+```typescript
+import type { Expected } from '@artemiskit/core';
+
+interface EvaluatorContext {
+  client?: ModelClient;    // LLM client for LLM-based evaluation
+  testCase?: TestCase;     // Current test case context
+}
+
+interface EvaluatorResult {
+  passed: boolean;         // Did the evaluation pass?
+  score: number;           // 0.0 to 1.0
+  reason?: string;         // Human-readable explanation
+  details?: Record<string, unknown>;  // Additional metadata
+}
+
+interface Evaluator {
+  readonly type: string;   // Unique evaluator type name
+
+  evaluate(
+    response: string,
+    expected: Expected,
+    context?: EvaluatorContext
+  ): Promise<EvaluatorResult>;
+}
+```
+
+## Creating a Custom Evaluator
+
+### Step 1: Implement the Interface
+
+```typescript
+import type { Evaluator, EvaluatorResult, EvaluatorContext } from '@artemiskit/core';
+import type { Expected } from '@artemiskit/core';
+
+export class WordCountEvaluator implements Evaluator {
+  readonly type = 'word_count';
+
+  async evaluate(
+    response: string,
+    expected: Expected,
+    context?: EvaluatorContext
+  ): Promise<EvaluatorResult> {
+    // Type guard - ensure we have the right expected type
+    if (expected.type !== 'word_count') {
+      throw new Error('Invalid expected type for WordCountEvaluator');
+    }
+
+    // Count words
+    const words = response.trim().split(/\s+/).filter(w => w.length > 0);
+    const wordCount = words.length;
+
+    // Check against min/max constraints
+    const min = expected.min ?? 0;
+    const max = expected.max ?? Infinity;
+    const passed = wordCount >= min && wordCount <= max;
+
+    // Calculate score (1.0 if within range, scaled otherwise)
+    let score = 1.0;
+    if (wordCount < min) {
+      score = wordCount / min;
+    } else if (wordCount > max) {
+      score = max / wordCount;
+    }
+
+    return {
+      passed,
+      score,
+      reason: passed
+        ? `Word count ${wordCount} is within range [${min}, ${max}]`
+        : `Word count ${wordCount} is outside range [${min}, ${max}]`,
+      details: {
+        wordCount,
+        min,
+        max,
+      },
+    };
+  }
+}
+```
+
+### Step 2: Register the Evaluator
+
+```typescript
+import { registerEvaluator } from '@artemiskit/core';
+
+// Register your custom evaluator
+registerEvaluator('word_count', new WordCountEvaluator());
+```
+
+### Step 3: Use in Scenarios
+
+```yaml
+name: word-count-test
+provider: openai
+model: gpt-4o
+
+cases:
+  - id: summary-length
+    prompt: "Summarize the history of computing in 50-100 words"
+    expected:
+      type: word_count
+      min: 50
+      max: 100
+
+  - id: brief-answer
+    prompt: "What is 2+2? Answer in one word."
+    expected:
+      type: word_count
+      max: 5
+```
+
+## Real-World Examples
+
+### Medical Terminology Evaluator
+
+Validates that medical terms are used correctly.
+
+```typescript
+import type { Evaluator, EvaluatorResult } from '@artemiskit/core';
+
+// Medical terminology database (simplified)
+const MEDICAL_TERMS = new Map([
+  ['hypertension', 'high blood pressure'],
+  ['myocardial infarction', 'heart attack'],
+  ['cerebrovascular accident', 'stroke'],
+  ['dyspnea', 'shortness of breath'],
+]);
+
+export class MedicalTermEvaluator implements Evaluator {
+  readonly type = 'medical_term';
+
+  async evaluate(
+    response: string,
+    expected: Expected
+  ): Promise<EvaluatorResult> {
+    if (expected.type !== 'medical_term') {
+      throw new Error('Invalid expected type');
+    }
+
+    const requiredTerms = expected.terms as string[];
+    const responseLower = response.toLowerCase();
+
+    const foundTerms: string[] = [];
+    const missingTerms: string[] = [];
+
+    for (const term of requiredTerms) {
+      const termLower = term.toLowerCase();
+      const layTerm = MEDICAL_TERMS.get(termLower);
+
+      // Check for medical term OR its lay equivalent
+      if (
+        responseLower.includes(termLower) ||
+        (layTerm && responseLower.includes(layTerm))
+      ) {
+        foundTerms.push(term);
+      } else {
+        missingTerms.push(term);
+      }
+    }
+
+    const score = foundTerms.length / requiredTerms.length;
+    const passed = expected.mode === 'any'
+      ? foundTerms.length > 0
+      : missingTerms.length === 0;
+
+    return {
+      passed,
+      score,
+      reason: passed
+        ? `Found required medical terms: ${foundTerms.join(', ')}`
+        : `Missing medical terms: ${missingTerms.join(', ')}`,
+      details: {
+        foundTerms,
+        missingTerms,
+        requiredTerms,
+        mode: expected.mode,
+      },
+    };
+  }
+}
+
+// Register
+registerEvaluator('medical_term', new MedicalTermEvaluator());
+```
+
+Usage:
+
+```yaml
+cases:
+  - id: diagnosis-terms
+    prompt: "Explain the symptoms and causes of a heart attack"
+    expected:
+      type: medical_term
+      terms:
+        - myocardial infarction
+        - chest pain
+        - coronary artery
+      mode: all  # all terms required
+```
+
+### Citation Validator
+
+Verifies that LLM responses cite sources correctly.
+
+```typescript
+export class CitationEvaluator implements Evaluator {
+  readonly type = 'citation';
+
+  async evaluate(
+    response: string,
+    expected: Expected
+  ): Promise<EvaluatorResult> {
+    if (expected.type !== 'citation') {
+      throw new Error('Invalid expected type');
+    }
+
+    // Patterns for different citation formats
+    const patterns = {
+      url: /https?:\/\/[^\s]+/g,
+      academic: /\[(\d+)\]|\(\w+,?\s*\d{4}\)/g,  // [1] or (Smith, 2024)
+      footnote: /\[\^?\d+\]/g,                    // [1] or [^1]
+    };
+
+    const format = expected.format || 'any';
+    const minCitations = expected.min || 1;
+
+    let citations: string[] = [];
+
+    if (format === 'any') {
+      // Check all patterns
+      for (const pattern of Object.values(patterns)) {
+        const matches = response.match(pattern) || [];
+        citations.push(...matches);
+      }
+    } else {
+      const pattern = patterns[format as keyof typeof patterns];
+      citations = response.match(pattern) || [];
+    }
+
+    // Remove duplicates
+    citations = [...new Set(citations)];
+
+    const passed = citations.length >= minCitations;
+    const score = Math.min(citations.length / minCitations, 1);
+
+    return {
+      passed,
+      score,
+      reason: passed
+        ? `Found ${citations.length} citations (min: ${minCitations})`
+        : `Only ${citations.length} citations found (min: ${minCitations})`,
+      details: {
+        citations,
+        count: citations.length,
+        minRequired: minCitations,
+        format,
+      },
+    };
+  }
+}
+
+registerEvaluator('citation', new CitationEvaluator());
+```
+
+Usage:
+
+```yaml
+cases:
+  - id: research-summary
+    prompt: "Summarize recent research on quantum computing with citations"
+    expected:
+      type: citation
+      format: academic
+      min: 3
+```
+
+### Sentiment Evaluator
+
+Validates emotional tone using an LLM.
+
+```typescript
+export class SentimentEvaluator implements Evaluator {
+  readonly type = 'sentiment';
+
+  async evaluate(
+    response: string,
+    expected: Expected,
+    context?: EvaluatorContext
+  ): Promise<EvaluatorResult> {
+    if (expected.type !== 'sentiment') {
+      throw new Error('Invalid expected type');
+    }
+
+    if (!context?.client) {
+      throw new Error('Sentiment evaluator requires LLM client');
+    }
+
+    const expectedSentiment = expected.sentiment as string; // positive, negative, neutral
+    const threshold = expected.threshold ?? 0.7;
+
+    // Use LLM to analyze sentiment
+    const result = await context.client.generate({
+      prompt: `Analyze the sentiment of this text and respond with ONLY a JSON object.
+
+TEXT:
+${response}
+
+Respond with: {"sentiment": "positive|negative|neutral", "confidence": 0.0-1.0, "reason": "brief explanation"}
+
+JSON:`,
+      maxTokens: 150,
+    });
+
+    try {
+      const analysis = JSON.parse(
+        result.text.replace(/```json?/g, '').replace(/```/g, '').trim()
+      );
+
+      const matchesSentiment =
+        analysis.sentiment.toLowerCase() === expectedSentiment.toLowerCase();
+      const meetsThreshold = analysis.confidence >= threshold;
+      const passed = matchesSentiment && meetsThreshold;
+
+      return {
+        passed,
+        score: matchesSentiment ? analysis.confidence : 1 - analysis.confidence,
+        reason: passed
+          ? `Sentiment is ${analysis.sentiment} with ${(analysis.confidence * 100).toFixed(0)}% confidence`
+          : `Expected ${expectedSentiment}, got ${analysis.sentiment} (${(analysis.confidence * 100).toFixed(0)}% confidence)`,
+        details: {
+          expected: expectedSentiment,
+          actual: analysis.sentiment,
+          confidence: analysis.confidence,
+          threshold,
+          llmReason: analysis.reason,
+        },
+      };
+    } catch (error) {
+      return {
+        passed: false,
+        score: 0,
+        reason: `Failed to parse sentiment analysis: ${(error as Error).message}`,
+        details: { error: (error as Error).message, rawResponse: result.text },
+      };
+    }
+  }
+}
+
+registerEvaluator('sentiment', new SentimentEvaluator());
+```
+
+Usage:
+
+```yaml
+cases:
+  - id: support-response
+    prompt: "Customer says: 'Your product broke after one day!' Write a supportive response."
+    expected:
+      type: sentiment
+      sentiment: positive
+      threshold: 0.8
+```
+
+### API Response Validator
+
+Validates that a response can successfully call an external API.
+
+```typescript
+export class APIResponseEvaluator implements Evaluator {
+  readonly type = 'api_response';
+
+  async evaluate(
+    response: string,
+    expected: Expected
+  ): Promise<EvaluatorResult> {
+    if (expected.type !== 'api_response') {
+      throw new Error('Invalid expected type');
+    }
+
+    const endpoint = expected.endpoint as string;
+    const method = (expected.method as string) || 'POST';
+
+    try {
+      // Try to parse response as JSON
+      const payload = JSON.parse(response);
+
+      // Call the validation API
+      const apiResponse = await fetch(endpoint, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const passed = apiResponse.ok;
+      const responseData = await apiResponse.json().catch(() => ({}));
+
+      return {
+        passed,
+        score: passed ? 1 : 0,
+        reason: passed
+          ? `API validation succeeded (${apiResponse.status})`
+          : `API validation failed (${apiResponse.status}): ${responseData.error || 'Unknown error'}`,
+        details: {
+          statusCode: apiResponse.status,
+          endpoint,
+          payload,
+          response: responseData,
+        },
+      };
+    } catch (error) {
+      return {
+        passed: false,
+        score: 0,
+        reason: `Failed to validate: ${(error as Error).message}`,
+        details: { error: (error as Error).message },
+      };
+    }
+  }
+}
+
+registerEvaluator('api_response', new APIResponseEvaluator());
+```
+
+## Using Custom Evaluators with SDK
+
+```typescript
+import { ArtemisKit, registerEvaluator } from '@artemiskit/sdk';
+
+// Register custom evaluators before running
+registerEvaluator('word_count', new WordCountEvaluator());
+registerEvaluator('citation', new CitationEvaluator());
+
+const kit = new ArtemisKit({
+  provider: 'openai',
+  model: 'gpt-4o',
+});
+
+// Run scenarios using custom evaluators
+const results = await kit.run({
+  scenario: './scenarios/custom-tests.yaml',
+});
+```
+
+## Composing Evaluators
+
+Combine custom evaluators with built-in ones using `combined`:
+
+```yaml
+cases:
+  - id: comprehensive-check
+    prompt: "Write a research summary about AI safety"
+    expected:
+      type: combined
+      mode: all
+      assertions:
+        # Custom evaluator
+        - type: word_count
+          min: 100
+          max: 500
+        # Custom evaluator
+        - type: citation
+          min: 2
+        # Built-in evaluator
+        - type: contains
+          values: ["AI safety", "alignment"]
+          mode: any
+        # Built-in evaluator
+        - type: not_contains
+          values: ["I don't know", "I cannot"]
+```
+
+## Best Practices
+
+<Aside type="tip" title="Custom Evaluator Best Practices">
+
+1. **Type guard first** — Always check `expected.type` matches your evaluator
+2. **Return meaningful scores** — Use 0.0-1.0 scale proportionally, not just 0 or 1
+3. **Provide clear reasons** — Help users understand why evaluation passed/failed
+4. **Include details** — Add metadata for debugging and reporting
+5. **Handle errors gracefully** — Return failed result instead of throwing
+6. **Make evaluators stateless** — Don't store state between evaluations
+7. **Test thoroughly** — Write unit tests for edge cases
+
+</Aside>
+
+## Testing Custom Evaluators
+
+```typescript
+import { describe, test, expect } from 'vitest';
+import { WordCountEvaluator } from './word-count-evaluator';
+
+describe('WordCountEvaluator', () => {
+  const evaluator = new WordCountEvaluator();
+
+  test('passes when word count is within range', async () => {
+    const result = await evaluator.evaluate(
+      'This is a test response with exactly eight words.',
+      { type: 'word_count', min: 5, max: 10 }
+    );
+
+    expect(result.passed).toBe(true);
+    expect(result.score).toBe(1);
+  });
+
+  test('fails when word count is below minimum', async () => {
+    const result = await evaluator.evaluate(
+      'Too short',
+      { type: 'word_count', min: 10, max: 20 }
+    );
+
+    expect(result.passed).toBe(false);
+    expect(result.score).toBeLessThan(1);
+    expect(result.details.wordCount).toBe(2);
+  });
+
+  test('fails when word count exceeds maximum', async () => {
+    const result = await evaluator.evaluate(
+      'This response has way too many words for the specified maximum limit that was set',
+      { type: 'word_count', min: 1, max: 5 }
+    );
+
+    expect(result.passed).toBe(false);
+  });
+});
+```
+
+## See Also
+
+- [Expectations Reference](/docs/concepts/expectations/) — Built-in evaluator types
+- [Scenario Builders](/docs/examples/scenario-builders/) — Programmatic test creation
+- [SDK Reference](/docs/sdk/) — Full SDK documentation

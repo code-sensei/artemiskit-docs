@@ -1,164 +1,50 @@
 ---
-title: Getting Started
-description: Your first ArtemisKit test in 5 minutes. Install, configure, run.
+title: CLI Quick Start
+description: Get started with ArtemisKit CLI in 5 minutes
 ---
 
-# Getting Started
+import { Aside } from '@astrojs/starlight/components';
 
-From zero to your first passing test. Five minutes.
+# CLI Quick Start
 
-## Prerequisites
+<Aside type="tip" title="Full Getting Started Guide">
+  For a comprehensive guide covering both CLI and SDK, see the [Getting Started](/docs/getting-started/) page.
+</Aside>
 
-- Node.js 18+ or Bun 1.0+
-- An API key for your LLM provider (OpenAI, Azure, Anthropic, etc.)
-
-## Step 1: Install
+## Quick Install
 
 ```bash
 npm install -g @artemiskit/cli
 ```
 
-Or with other package managers:
+## Quick Test
 
 ```bash
-# Bun
-bun add -g @artemiskit/cli
+# Set your API key
+export OPENAI_API_KEY="sk-..."
 
-# pnpm
-pnpm add -g @artemiskit/cli
-
-# Yarn
-yarn global add @artemiskit/cli
-```
-
-Verify installation:
-
-```bash
-artemiskit --version
-# or use the shorthand
-akit --version
-```
-
-## Step 2: Set Up API Key
-
-```bash
-export OPENAI_API_KEY="sk-your-api-key"
-```
-
-Or for other providers:
-
-```bash
-# Anthropic
-export ANTHROPIC_API_KEY="sk-ant-..."
-
-# Azure OpenAI
-export AZURE_OPENAI_API_KEY="your-key"
-export AZURE_OPENAI_RESOURCE_NAME="your-resource"
-export AZURE_OPENAI_DEPLOYMENT_NAME="your-deployment"
-```
-
-## Step 3: Create Your First Scenario
-
-Create a file called `hello-world.yaml`:
-
-```yaml
+# Create a test scenario
+cat > hello-world.yaml << 'EOF'
 name: hello-world
-description: My first ArtemisKit test
 provider: openai
-model: gpt-5
+model: gpt-4o
 
 cases:
-  - id: basic-math
+  - id: math-test
     prompt: "What is 2 + 2?"
     expected:
       type: contains
-      values:
-        - "4"
-      mode: any
+      values: ["4"]
+EOF
 
-  - id: greeting
-    prompt: "Say hello in a friendly way"
-    expected:
-      type: contains
-      values:
-        - "hello"
-        - "hi"
-        - "hey"
-      mode: any
-```
-
-## Step 4: Run the Test
-
-```bash
-artemiskit run hello-world.yaml
-```
-
-Or use the shorthand:
-
-```bash
+# Run the test
 akit run hello-world.yaml
 ```
 
-You'll see output like:
+## Next Steps
 
-```
-Running scenario: hello-world
-  ✓ basic-math (234ms)
-  ✓ greeting (189ms)
-
-Results: 2/2 passed (100%)
-```
-
-## Step 5: Save and View Results
-
-Generate an HTML report:
-
-```bash
-akit run hello-world.yaml --save
-```
-
-This creates files in `artemis-output/`:
-- `run_manifest.json` — Complete run data
-- A timestamped report file
-
-## Step 6: Create a Config File (Optional)
-
-For consistent settings across runs, create `artemis.config.yaml`:
-
-```yaml
-provider: openai
-model: gpt-5
-
-providers:
-  openai:
-    apiKey: ${OPENAI_API_KEY}
-    timeout: 60000
-
-output:
-  format: json
-  dir: ./artemis-output
-```
-
-Now you can run scenarios without specifying provider/model each time:
-
-```bash
-akit run hello-world.yaml
-```
-
-## Step 7: Validate Before Running (Optional)
-
-Before running scenarios, you can validate them for syntax errors:
-
-```bash
-akit validate hello-world.yaml
-```
-
-This checks for YAML syntax errors, schema violations, and semantic issues without calling the LLM.
-
-## What's Next
-
-- [Scenario Format](/docs/cli/scenarios/format/) — Full YAML schema reference
-- [Expectations](/docs/cli/scenarios/expectations/) — All evaluator types
-- [Validate Command](/docs/cli/commands/validate/) — Pre-flight scenario validation
+- [Getting Started Guide](/docs/getting-started/) — Full walkthrough with SDK coverage
+- [Scenario Format](/docs/concepts/scenarios/) — YAML schema reference
+- [Expectations](/docs/concepts/expectations/) — All evaluator types
 - [Commands](/docs/cli/commands/run/) — CLI options and flags
-- [CI/CD Integration](/docs/cli/ci-cd/) — GitHub Actions, GitLab CI, JUnit export
+- [CI/CD Integration](/docs/examples/ci-cd-integration/) — Pipeline setup

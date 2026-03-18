@@ -1,0 +1,414 @@
+---
+title: CI/CD Integration
+description: Set up LLM quality gates in GitHub Actions, GitLab CI, and other pipelines
+---
+
+import { Aside, Tabs, TabItem, Steps } from '@astrojs/starlight/components';
+
+# CI/CD Integration
+
+Automate LLM testing in your CI/CD pipeline to catch regressions before they reach production.
+
+## Overview
+
+ArtemisKit integrates with any CI/CD system through:
+
+1. **Exit codes** — Non-zero exit on test failure
+2. **JUnit reports** — Standard test report format
+3. **JSON manifests** — Machine-readable results
+4. **CLI flags** — CI-optimized output (`--ci`)
+
+## GitHub Actions
+
+### Basic Quality Gate
+
+```yaml
+# .github/workflows/llm-quality.yml
+name: LLM Quality Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install ArtemisKit
+        run: npm install -g @artemiskit/cli
+
+      - name: Validate Scenarios
+        run: akit validate scenarios/
+
+      - name: Run Quality Tests
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: akit run scenarios/ --ci --save
+
+      - name: Upload Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: artemis-output/
+```
+
+### With Security Testing
+
+```yaml
+# .github/workflows/llm-security.yml
+name: LLM Security Scan
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Nightly at 2 AM
+  workflow_dispatch:
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install ArtemisKit
+        run: npm install -g @artemiskit/cli
+
+      - name: Run Red Team Tests
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          akit redteam \
+            --prompt "You are a helpful assistant for customer support" \
+            --categories injection,jailbreak,extraction,pii \
+            --mutations encoding,multi_turn \
+            --save \
+            --ci
+
+      - name: Upload Security Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-report
+          path: artemis-output/
+
+      - name: Check Critical Vulnerabilities
+        run: |
+          # Fail if any critical vulnerabilities found
+          if grep -q '"severity":"critical"' artemis-output/run_manifest.json; then
+            echo "::error::Critical vulnerabilities detected!"
+            exit 1
+          fi
+```
+
+### Regression Testing on PR
+
+```yaml
+# .github/workflows/regression-check.yml
+name: Regression Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  regression-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for baseline comparison
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install ArtemisKit
+        run: npm install -g @artemiskit/cli
+
+      - name: Run Tests
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: akit run scenarios/ --save --ci
+
+      - name: Compare with Baseline
+        run: |
+          # Get latest run ID
+          CURRENT=$(cat artemis-output/run_manifest.json | jq -r '.run_id')
+
+          # Compare with baseline (set via `akit baseline set`)
+          akit compare --baseline latest --current $CURRENT --threshold 0.05
+
+      - name: Comment Results on PR
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            const fs = require('fs');
+            const manifest = JSON.parse(fs.readFileSync('artemis-output/run_manifest.json'));
+
+            const body = `## LLM Quality Results
+
+            | Metric | Value |
+            |--------|-------|
+            | Pass Rate | ${(manifest.metrics.pass_rate * 100).toFixed(1)}% |
+            | Total Cases | ${manifest.metrics.total_cases} |
+            | Passed | ${manifest.metrics.passed_cases} |
+            | Failed | ${manifest.metrics.failed_cases} |
+
+            [View detailed report](${context.payload.repository.html_url}/actions/runs/${context.runId})`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
+```
+
+## GitLab CI
+
+```yaml
+# .gitlab-ci.yml
+stages:
+  - validate
+  - test
+  - security
+
+variables:
+  OPENAI_API_KEY: $OPENAI_API_KEY
+
+validate-scenarios:
+  stage: validate
+  image: node:20
+  script:
+    - npm install -g @artemiskit/cli
+    - akit validate scenarios/
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+quality-tests:
+  stage: test
+  image: node:20
+  script:
+    - npm install -g @artemiskit/cli
+    - akit run scenarios/ --ci --save
+  artifacts:
+    when: always
+    paths:
+      - artemis-output/
+    reports:
+      junit: artemis-output/junit.xml
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+security-scan:
+  stage: security
+  image: node:20
+  script:
+    - npm install -g @artemiskit/cli
+    - |
+      akit redteam \
+        --prompt "You are a helpful assistant" \
+        --categories injection,jailbreak,extraction \
+        --save \
+        --ci
+  artifacts:
+    when: always
+    paths:
+      - artemis-output/
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+```
+
+## SDK Integration
+
+For more control, use the SDK directly in your test files:
+
+### Jest Integration
+
+```typescript
+// tests/llm-quality.test.ts
+import { ArtemisKit } from '@artemiskit/sdk';
+import { describe, test, expect, beforeAll } from '@jest/globals';
+
+describe('LLM Quality', () => {
+  let kit: ArtemisKit;
+
+  beforeAll(() => {
+    kit = new ArtemisKit({
+      provider: 'openai',
+      model: 'gpt-4',
+    });
+  });
+
+  test('quality scenarios pass', async () => {
+    const results = await kit.run({
+      scenario: './scenarios/quality.yaml',
+    });
+
+    expect(results.success).toBe(true);
+    expect(results.manifest.metrics.pass_rate).toBeGreaterThanOrEqual(0.95);
+  }, 120000); // 2 minute timeout
+
+  test('no critical security vulnerabilities', async () => {
+    const results = await kit.redteam({
+      scenario: './scenarios/security.yaml',
+      mutations: ['encoding', 'multi_turn'],
+    });
+
+    expect(results.manifest.metrics.by_severity.critical).toBe(0);
+    expect(results.defenseRate).toBeGreaterThanOrEqual(0.9);
+  }, 180000); // 3 minute timeout
+});
+```
+
+### Vitest Integration
+
+```typescript
+// tests/llm-quality.test.ts
+import { ArtemisKit } from '@artemiskit/sdk';
+import { describe, test, expect, beforeAll } from 'vitest';
+
+describe('LLM Quality', () => {
+  let kit: ArtemisKit;
+
+  beforeAll(() => {
+    kit = new ArtemisKit({
+      provider: 'openai',
+      model: 'gpt-4',
+    });
+  });
+
+  test('scenarios pass', async () => {
+    const results = await kit.run({
+      scenario: './scenarios/quality.yaml',
+    });
+
+    expect(results.success).toBe(true);
+  }, { timeout: 120000 });
+});
+```
+
+### Custom CI Script
+
+```typescript
+// scripts/ci-quality-check.ts
+import { ArtemisKit } from '@artemiskit/sdk';
+
+async function main() {
+  const kit = new ArtemisKit({
+    provider: 'openai',
+    model: 'gpt-4',
+    project: process.env.CI_PROJECT_NAME || 'ci-check',
+  });
+
+  // Track progress
+  kit.onProgress((event) => {
+    console.log(`[${event.phase}] ${event.message}`);
+  });
+
+  // Run quality tests
+  console.log('Running quality tests...');
+  const qualityResults = await kit.run({
+    scenario: './scenarios/**/*.yaml',
+    tags: ['critical', 'smoke'],
+  });
+
+  if (!qualityResults.success) {
+    console.error('Quality tests failed!');
+    const failed = qualityResults.cases.filter(c => !c.ok);
+    for (const f of failed) {
+      console.error(`  - ${f.name}: ${f.reason}`);
+    }
+    process.exit(1);
+  }
+
+  // Run security scan
+  console.log('Running security scan...');
+  const securityResults = await kit.redteam({
+    scenario: './scenarios/core.yaml',
+    mutations: ['encoding', 'instruction-flip'],
+  });
+
+  if (securityResults.manifest.metrics.by_severity.critical > 0) {
+    console.error('Critical vulnerabilities found!');
+    process.exit(1);
+  }
+
+  // Compare with baseline
+  console.log('Checking for regressions...');
+  const comparison = await kit.compare({
+    baseline: 'latest',
+    current: qualityResults.manifest.run_id,
+    threshold: 0.05,
+  });
+
+  if (comparison.regression) {
+    console.error(`Regression detected! Pass rate dropped by ${comparison.delta.passRate}%`);
+    process.exit(1);
+  }
+
+  console.log('All checks passed!');
+  console.log(`Pass rate: ${qualityResults.manifest.metrics.pass_rate * 100}%`);
+  console.log(`Defense rate: ${securityResults.defenseRate * 100}%`);
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
+```
+
+Run with:
+
+```bash
+npx tsx scripts/ci-quality-check.ts
+```
+
+## Best Practices
+
+<Aside type="tip" title="CI/CD Best Practices">
+
+1. **Use `--ci` flag** — Optimizes output for CI environments
+2. **Validate first** — Run `akit validate` before `akit run` to catch YAML errors early
+3. **Save results** — Always use `--save` for artifact collection
+4. **Set timeouts** — LLM calls can be slow; set appropriate job timeouts
+5. **Cache dependencies** — Cache npm/bun installations for faster runs
+6. **Separate jobs** — Run security scans separately (they take longer)
+7. **Use secrets** — Never commit API keys; use CI secret management
+
+</Aside>
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `OPENAI_API_KEY` | OpenAI API key |
+| `ANTHROPIC_API_KEY` | Anthropic API key |
+| `AZURE_OPENAI_API_KEY` | Azure OpenAI API key |
+| `AZURE_OPENAI_RESOURCE_NAME` | Azure resource name |
+| `AZURE_OPENAI_DEPLOYMENT_NAME` | Azure deployment name |
+| `CI` | Set by most CI systems; enables CI mode |
+
+## See Also
+
+- [CLI Reference](/docs/cli/commands/run/) — Command options
+- [SDK Evaluation](/docs/sdk/evaluation/) — Programmatic API
+- [Regression Testing](/docs/examples/regression-testing/) — Baseline management

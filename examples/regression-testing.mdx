@@ -1,0 +1,421 @@
+---
+title: Regression Testing
+description: Detect quality regressions across model updates and prompt changes
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Regression Testing
+
+Detect quality regressions when updating models, prompts, or configurations.
+
+## Overview
+
+Regression testing in ArtemisKit involves:
+
+1. **Establishing baselines** — Save known-good test results
+2. **Running current tests** — Execute the same scenarios
+3. **Comparing results** — Detect performance drops
+4. **Alerting on regressions** — Fail CI/CD on significant changes
+
+## Quick Start
+
+<Steps>
+
+1. **Establish a baseline**
+
+   ```bash
+   # Run tests and save results
+   akit run scenarios/ --save
+
+   # Set as baseline
+   akit baseline set <run-id>
+   ```
+
+2. **Make changes** (update prompts, switch models, etc.)
+
+3. **Run tests again**
+
+   ```bash
+   akit run scenarios/ --save
+   ```
+
+4. **Compare with baseline**
+
+   ```bash
+   akit compare --baseline latest --current <new-run-id>
+   ```
+
+</Steps>
+
+## CLI Workflow
+
+### Setting Baselines
+
+```bash
+# Run scenarios
+akit run scenarios/quality.yaml --save
+# Output: Run completed. Run ID: run_abc123
+
+# Set as baseline for this scenario
+akit baseline set run_abc123
+
+# Or set with a name
+akit baseline set run_abc123 --name "v1.0-release"
+```
+
+### Viewing Baselines
+
+```bash
+# List all baselines
+akit baseline list
+
+# Output:
+# Baselines:
+#   quality.yaml: run_abc123 (set 2024-03-15)
+#   security.yaml: run_def456 (set 2024-03-14)
+#   v1.0-release: run_abc123 (set 2024-03-15)
+```
+
+### Comparing Runs
+
+```bash
+# Compare with latest baseline
+akit compare --baseline latest --current run_xyz789
+
+# Compare with named baseline
+akit compare --baseline v1.0-release --current run_xyz789
+
+# Compare two specific runs
+akit compare --baseline run_abc123 --current run_xyz789
+
+# Set custom regression threshold (default: 5%)
+akit compare --baseline latest --current run_xyz789 --threshold 0.10
+```
+
+### Comparison Output
+
+```
+Comparison: run_abc123 vs run_xyz789
+
+  Pass Rate:   95.0% → 92.0%  (-3.0%) ⚠️
+  Avg Latency: 234ms → 289ms  (+23.5%)
+  Total Cases: 20 → 20
+
+  Changed Cases:
+    - greeting-test: PASS → FAIL
+    - json-output: PASS → FAIL
+
+  Added Cases: 0
+  Removed Cases: 0
+
+  Verdict: REGRESSION DETECTED
+```
+
+## SDK Workflow
+
+### Basic Comparison
+
+```typescript
+import { ArtemisKit } from '@artemiskit/sdk';
+
+const kit = new ArtemisKit({
+  provider: 'openai',
+  model: 'gpt-4',
+  project: 'my-app',
+});
+
+// Run tests
+const results = await kit.run({
+  scenario: './scenarios/quality.yaml',
+});
+
+// Compare with baseline
+const comparison = await kit.compare({
+  baseline: 'latest',           // or run ID or baseline name
+  current: results.manifest.run_id,
+  threshold: 0.05,              // 5% regression threshold
+});
+
+if (comparison.regression) {
+  console.error('Regression detected!');
+  console.error(`Pass rate: ${comparison.baseline.passRate}% → ${comparison.current.passRate}%`);
+  console.error(`Delta: ${comparison.delta.passRate}%`);
+
+  // Show changed cases
+  for (const changed of comparison.changedCases) {
+    console.error(`  ${changed.caseId}: ${changed.baseline.status} → ${changed.current.status}`);
+  }
+
+  process.exit(1);
+}
+```
+
+### Baseline Management
+
+```typescript
+// Set baseline from run
+await kit.baseline.create({
+  runId: results.manifest.run_id,
+  name: 'v2.0-release',
+});
+
+// Get baseline
+const baseline = await kit.baseline.get('quality.yaml');
+console.log('Baseline run:', baseline.runId);
+
+// List baselines
+const baselines = await kit.baseline.list();
+for (const b of baselines) {
+  console.log(`${b.scenario}: ${b.runId} (${b.createdAt})`);
+}
+
+// Delete baseline
+await kit.baseline.delete('quality.yaml');
+```
+
+### Validation Before Running
+
+```typescript
+// Validate scenarios first (catches YAML errors)
+const validation = await kit.validate({
+  scenario: './scenarios/**/*.yaml',
+  strict: false,
+});
+
+if (!validation.valid) {
+  console.error('Invalid scenarios:');
+  for (const error of validation.errors) {
+    console.error(`  ${error.file}: ${error.message}`);
+  }
+  process.exit(1);
+}
+
+// Then run
+const results = await kit.run({
+  scenario: './scenarios/**/*.yaml',
+});
+```
+
+## Automated Regression in CI
+
+### GitHub Actions
+
+```yaml
+# .github/workflows/regression.yml
+name: Regression Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install
+        run: npm install -g @artemiskit/cli
+
+      - name: Run Tests
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: akit run scenarios/ --save --ci
+
+      - name: Check Regression
+        run: |
+          CURRENT=$(cat artemis-output/run_manifest.json | jq -r '.run_id')
+          akit compare --baseline latest --current $CURRENT --threshold 0.05
+
+      - name: Upload Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: artemis-output/
+```
+
+### SDK Script
+
+```typescript
+// scripts/regression-check.ts
+import { ArtemisKit } from '@artemiskit/sdk';
+
+async function main() {
+  const kit = new ArtemisKit({
+    provider: 'openai',
+    model: 'gpt-4',
+  });
+
+  // Validate first
+  const validation = await kit.validate({
+    scenario: './scenarios/**/*.yaml',
+  });
+
+  if (!validation.valid) {
+    console.error('Scenario validation failed');
+    process.exit(1);
+  }
+
+  // Run tests
+  console.log('Running tests...');
+  const results = await kit.run({
+    scenario: './scenarios/**/*.yaml',
+    tags: ['regression'],
+  });
+
+  if (!results.success) {
+    console.error(`Tests failed: ${results.manifest.metrics.failed_cases} failures`);
+    process.exit(1);
+  }
+
+  // Compare with baseline
+  console.log('Checking for regressions...');
+  const comparison = await kit.compare({
+    baseline: 'latest',
+    current: results.manifest.run_id,
+    threshold: 0.05,
+  });
+
+  if (comparison.regression) {
+    console.error('REGRESSION DETECTED');
+    console.error(`Pass rate dropped by ${Math.abs(comparison.delta.passRate * 100).toFixed(1)}%`);
+
+    // Detail the failures
+    for (const changed of comparison.changedCases) {
+      if (changed.current.status === 'failed' && changed.baseline.status === 'passed') {
+        console.error(`  - ${changed.caseId}: was passing, now failing`);
+      }
+    }
+
+    process.exit(1);
+  }
+
+  console.log('No regression detected');
+  console.log(`Pass rate: ${(results.manifest.metrics.pass_rate * 100).toFixed(1)}%`);
+}
+
+main().catch(e => {
+  console.error(e);
+  process.exit(1);
+});
+```
+
+## Comparison Metrics
+
+The comparison result includes:
+
+| Metric | Description |
+|--------|-------------|
+| `regression` | Boolean: was regression detected |
+| `delta.passRate` | Change in pass rate (negative = worse) |
+| `delta.avgLatency` | Change in average latency |
+| `delta.totalCases` | Change in case count |
+| `addedCases` | Cases in current but not baseline |
+| `removedCases` | Cases in baseline but not current |
+| `changedCases` | Cases with different results |
+
+### Changed Case Detail
+
+```typescript
+interface CaseComparison {
+  caseId: string;
+  baseline: {
+    status: 'passed' | 'failed' | 'skipped';
+    score: number;
+    latencyMs: number;
+  };
+  current: {
+    status: 'passed' | 'failed' | 'skipped';
+    score: number;
+    latencyMs: number;
+  };
+}
+```
+
+## Strategies
+
+### Model Upgrade Testing
+
+When upgrading models (e.g., GPT-4 → GPT-4o):
+
+```bash
+# 1. Run with old model, set baseline
+akit run scenarios/ --model gpt-4 --save
+akit baseline set <run-id> --name "gpt-4-baseline"
+
+# 2. Run with new model
+akit run scenarios/ --model gpt-4o --save
+
+# 3. Compare
+akit compare --baseline gpt-4-baseline --current <new-run-id>
+```
+
+### Prompt Engineering
+
+When iterating on prompts:
+
+```typescript
+// Track multiple versions
+const versions = ['v1', 'v2', 'v3'];
+
+for (const version of versions) {
+  const results = await kit.run({
+    scenario: `./scenarios/prompt-${version}.yaml`,
+  });
+
+  console.log(`${version}: ${results.manifest.metrics.pass_rate * 100}%`);
+}
+```
+
+### A/B Testing
+
+Compare two configurations:
+
+```typescript
+const configA = await kit.run({
+  scenario: './scenarios/quality.yaml',
+  model: 'gpt-4o',
+});
+
+const configB = await kit.run({
+  scenario: './scenarios/quality.yaml',
+  model: 'claude-3-opus',
+});
+
+const comparison = await kit.compare({
+  baseline: configA.manifest.run_id,
+  current: configB.manifest.run_id,
+  threshold: 0, // No threshold, just compare
+});
+
+console.log('GPT-4o:', comparison.baseline.passRate);
+console.log('Claude:', comparison.current.passRate);
+console.log('Delta:', comparison.delta.passRate);
+```
+
+## Best Practices
+
+<Aside type="tip" title="Regression Testing Tips">
+
+1. **Use tags** — Tag critical cases for focused regression checks
+2. **Set appropriate thresholds** — 5% is common; adjust based on tolerance
+3. **Track latency** — Performance regressions matter too
+4. **Version baselines** — Name baselines after releases for easy reference
+5. **Automate in CI** — Run regression checks on every PR
+6. **Review new cases** — Added cases might indicate scope creep
+7. **Investigate removals** — Removed cases might hide regressions
+
+</Aside>
+
+## See Also
+
+- [CLI Compare Command](/docs/cli/commands/compare/) — Full command reference
+- [SDK Evaluation](/docs/sdk/evaluation/) — `kit.compare()` API
+- [CI/CD Integration](/docs/examples/ci-cd-integration/) — Pipeline setup

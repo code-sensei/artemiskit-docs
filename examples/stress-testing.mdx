@@ -1,0 +1,407 @@
+---
+title: Stress Testing
+description: Load test your LLM endpoints to understand performance limits
+---
+
+import { Aside, Tabs, TabItem, Steps } from '@astrojs/starlight/components';
+
+# Stress Testing
+
+Know your latency limits before users find them. ArtemisKit stress testing measures throughput, latency percentiles, and cost under load.
+
+## Overview
+
+Stress testing reveals:
+
+- **Throughput** — Requests per second your system can handle
+- **Latency percentiles** — p50, p90, p95, p99 response times
+- **Failure rate** — How the system degrades under load
+- **Token usage** — Consumption patterns at scale
+- **Cost estimates** — API costs for production traffic
+
+## Quick Start
+
+```bash
+# Basic stress test (30 seconds, 10 concurrent)
+akit stress scenarios/test.yaml
+
+# Higher load
+akit stress scenarios/test.yaml \
+  --concurrency 50 \
+  --duration 60
+
+# With cost tracking and budget limit
+akit stress scenarios/test.yaml \
+  --concurrency 20 \
+  --duration 60 \
+  --budget 5.00 \
+  --save
+```
+
+## CLI Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-c, --concurrency <n>` | Concurrent requests | `10` |
+| `-d, --duration <sec>` | Test duration in seconds | `30` |
+| `-n, --requests <n>` | Max total requests (optional) | No limit |
+| `--ramp-up <sec>` | Gradual ramp-up time | `5` |
+| `--budget <usd>` | Max budget in USD (fails if exceeded) | No limit |
+| `--save` | Save results to storage | `false` |
+| `-o, --output <dir>` | Output directory for reports | None |
+| `--redact` | Enable PII redaction | `false` |
+| `-v, --verbose` | Show latency histogram | `false` |
+
+## Creating a Stress Scenario
+
+The scenario file defines the prompts to use:
+
+```yaml
+# scenarios/stress-test.yaml
+name: api-stress-test
+description: Load test for production API
+provider: openai
+model: gpt-4o-mini
+
+# Prompts are selected round-robin during the test
+cases:
+  - id: short-query
+    prompt: "What is 2+2?"
+    expected:
+      type: contains
+      values: ["4"]
+
+  - id: medium-query
+    prompt: "Explain photosynthesis in 2 sentences."
+    expected:
+      type: llm_grader
+      rubric: "Explains photosynthesis clearly"
+
+  - id: longer-query
+    prompt: "Write a haiku about programming."
+    expected:
+      type: llm_grader
+      rubric: "Valid haiku structure"
+```
+
+## Understanding Results
+
+```
+Stress Test Results
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Requests    1,247 total │ 1,241 success │ 6 failed
+  Success     99.5%
+  Throughput  41.6 req/s
+
+  Latency
+    p50       234ms
+    p90       456ms
+    p95       512ms
+    p99       789ms
+    avg       267ms
+
+  Tokens
+    Total     156,234
+    Prompt    78,456
+    Completion 77,778
+    Avg/req   125.3
+
+  Cost
+    Estimated $0.47 (gpt-4o-mini)
+```
+
+### Key Metrics
+
+| Metric | Meaning | Target |
+|--------|---------|--------|
+| **p50** | Median latency (50th percentile) | < 500ms typical |
+| **p95** | 95% of requests faster than this | < 2000ms typical |
+| **p99** | 99% of requests faster than this | Watch for spikes |
+| **Throughput** | Requests per second | Depends on concurrency |
+| **Success rate** | % of requests that succeeded | > 99% for production |
+
+## SDK Stress Testing
+
+```typescript
+import { ArtemisKit } from '@artemiskit/sdk';
+
+const kit = new ArtemisKit({
+  provider: 'openai',
+  model: 'gpt-4o-mini',
+});
+
+// Run stress test
+const results = await kit.stress({
+  scenario: './scenarios/stress-test.yaml',
+  concurrency: 20,
+  duration: 60,
+});
+
+// Access metrics
+const { metrics } = results.manifest;
+
+console.log('Throughput:', metrics.requests_per_second, 'req/s');
+console.log('p50 Latency:', metrics.p50_latency_ms, 'ms');
+console.log('p95 Latency:', metrics.p95_latency_ms, 'ms');
+console.log('p99 Latency:', metrics.p99_latency_ms, 'ms');
+console.log('Success Rate:', (metrics.success_rate * 100).toFixed(1), '%');
+
+if (metrics.cost) {
+  console.log('Estimated Cost:', `$${metrics.cost.estimated_total_usd.toFixed(2)}`);
+}
+
+if (metrics.tokens) {
+  console.log('Total Tokens:', metrics.tokens.total_tokens);
+  console.log('Avg Tokens/Request:', metrics.tokens.avg_tokens_per_request.toFixed(1));
+}
+```
+
+### With Progress Tracking
+
+```typescript
+const kit = new ArtemisKit({
+  provider: 'openai',
+  model: 'gpt-4o-mini',
+});
+
+// Subscribe to events
+kit.on('stress:request:complete', (event) => {
+  console.log(`Request ${event.index}: ${event.latencyMs}ms ${event.success ? '✓' : '✗'}`);
+});
+
+const results = await kit.stress({
+  scenario: './scenarios/stress-test.yaml',
+  concurrency: 10,
+  duration: 30,
+});
+```
+
+## Ramp-Up Testing
+
+Gradually increase load to find breaking points:
+
+```bash
+# 10 second ramp-up to 50 concurrent
+akit stress scenarios/test.yaml \
+  --concurrency 50 \
+  --ramp-up 10 \
+  --duration 60 \
+  --verbose
+```
+
+The `--verbose` flag shows a latency distribution histogram:
+
+```
+Latency Distribution
+
+    0-  100ms │ ██████████████████████████████ 423
+  100-  200ms │ ████████████████████ 312
+  200-  300ms │ ██████████████ 198
+  300-  400ms │ ████████ 124
+  400-  500ms │ █████ 78
+  500-  600ms │ ███ 45
+  600-  700ms │ █ 21
+  700-  800ms │ █ 12
+  800-  900ms │  5
+  900- 1000ms │  3
+```
+
+## Budget Limits
+
+Set cost limits to prevent runaway spending:
+
+```bash
+# Fail if cost exceeds $5
+akit stress scenarios/test.yaml \
+  --concurrency 20 \
+  --duration 120 \
+  --budget 5.00
+```
+
+If exceeded:
+
+```
+✗ BUDGET EXCEEDED
+   Budget: $5.00  |  Actual: $5.47  |  Over by: $0.47
+```
+
+## CI/CD Integration
+
+### GitHub Actions
+
+```yaml
+# .github/workflows/performance.yml
+name: Performance Tests
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Daily at 6 AM
+  workflow_dispatch:
+
+jobs:
+  stress-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install ArtemisKit
+        run: npm install -g @artemiskit/cli
+
+      - name: Run Stress Test
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          akit stress scenarios/stress-test.yaml \
+            --concurrency 20 \
+            --duration 60 \
+            --budget 10.00 \
+            --save \
+            --output ./reports
+
+      - name: Check Performance
+        run: |
+          P95=$(cat reports/*.json | jq '.metrics.p95_latency_ms')
+          SUCCESS=$(cat reports/*.json | jq '.metrics.success_rate')
+
+          if (( $(echo "$P95 > 2000" | bc -l) )); then
+            echo "::error::p95 latency too high: ${P95}ms"
+            exit 1
+          fi
+
+          if (( $(echo "$SUCCESS < 0.99" | bc -l) )); then
+            echo "::error::Success rate too low: ${SUCCESS}"
+            exit 1
+          fi
+
+      - name: Upload Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stress-reports
+          path: reports/
+```
+
+### SDK Performance Gate
+
+```typescript
+const results = await kit.stress({
+  scenario: './scenarios/stress-test.yaml',
+  concurrency: 20,
+  duration: 60,
+});
+
+const { metrics } = results.manifest;
+
+// Performance gates
+if (metrics.p95_latency_ms > 2000) {
+  throw new Error(`p95 latency too high: ${metrics.p95_latency_ms}ms`);
+}
+
+if (metrics.success_rate < 0.99) {
+  throw new Error(`Success rate too low: ${(metrics.success_rate * 100).toFixed(1)}%`);
+}
+
+if (metrics.cost && metrics.cost.estimated_total_usd > 10) {
+  throw new Error(`Cost too high: $${metrics.cost.estimated_total_usd.toFixed(2)}`);
+}
+
+console.log('Performance tests passed!');
+```
+
+## Comparing Providers
+
+Test the same scenario against different providers:
+
+```bash
+# Test OpenAI
+akit stress scenarios/test.yaml \
+  --provider openai \
+  --model gpt-4o-mini \
+  --save
+
+# Test Anthropic
+akit stress scenarios/test.yaml \
+  --provider anthropic \
+  --model claude-3-haiku-20240307 \
+  --save
+
+# Compare results
+akit compare --baseline <openai-run-id> --current <anthropic-run-id>
+```
+
+## Best Practices
+
+<Aside type="tip" title="Stress Testing Best Practices">
+
+1. **Start small** — Begin with low concurrency and increase gradually
+2. **Use representative prompts** — Match production query patterns
+3. **Monitor costs** — Always set `--budget` to prevent surprise bills
+4. **Run regularly** — Daily or weekly tests catch regressions early
+5. **Test during off-peak** — Avoid impacting production users
+6. **Track trends** — Compare results over time with `akit compare`
+7. **Test failure modes** — What happens when the API is slow or unavailable?
+
+</Aside>
+
+## Test Matchers (SDK)
+
+```typescript
+import { ArtemisKit } from '@artemiskit/sdk';
+import { vitestMatchers } from '@artemiskit/sdk/vitest';
+import { describe, test, expect, beforeAll } from 'vitest';
+
+expect.extend(vitestMatchers);
+
+describe('Performance', () => {
+  let kit: ArtemisKit;
+
+  beforeAll(() => {
+    kit = new ArtemisKit({
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+    });
+  });
+
+  test('p95 latency under 2000ms', async () => {
+    const results = await kit.stress({
+      scenario: './scenarios/stress-test.yaml',
+      concurrency: 10,
+      duration: 30,
+    });
+
+    expect(results).toHaveStressP95LatencyBelow(2000);
+  }, 60000);
+
+  test('achieves 10 RPS', async () => {
+    const results = await kit.stress({
+      scenario: './scenarios/stress-test.yaml',
+      concurrency: 10,
+      duration: 30,
+    });
+
+    expect(results).toAchieveRPS(10);
+  }, 60000);
+
+  test('99% success rate', async () => {
+    const results = await kit.stress({
+      scenario: './scenarios/stress-test.yaml',
+      concurrency: 10,
+      duration: 30,
+    });
+
+    expect(results).toHaveStressSuccessRate(0.99);
+  }, 60000);
+});
+```
+
+## See Also
+
+- [CLI Stress Command](/docs/cli/commands/stress/) — Full command reference
+- [CI/CD Integration](/docs/examples/ci-cd-integration/) — Pipeline setup
+- [Regression Testing](/docs/examples/regression-testing/) — Track performance over time

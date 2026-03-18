@@ -13,9 +13,47 @@ ArtemisKit is the open-source toolkit for testing LLM applications. One CLI. Thr
 - **Secure** — Red team your LLM before attackers do
 - **Stress** — Know your latency limits before users find them
 
-## Packages
+## Get Started
 
-ArtemisKit is available as multiple packages:
+<CardGrid>
+  <Card title="Quick Start" icon="rocket">
+    From zero to your first test in 5 minutes. Install, configure, run.
+
+    [Get started →](/docs/getting-started/)
+  </Card>
+  <Card title="Core Concepts" icon="document">
+    Understand scenarios, expectations, providers, and evaluators.
+
+    [Learn concepts →](/docs/concepts/)
+  </Card>
+</CardGrid>
+
+## Choose Your Interface
+
+<CardGrid>
+  <Card title="CLI (@artemiskit/cli)" icon="terminal">
+    Run evaluations from the terminal, integrate with CI/CD, generate reports. Most teams start here.
+
+    [CLI Documentation →](/docs/cli/)
+  </Card>
+  <Card title="SDK (@artemiskit/sdk)" icon="puzzle">
+    Embed evaluations in your code. Includes Guardian Mode for runtime protection and Jest/Vitest matchers.
+
+    [SDK Documentation →](/docs/sdk/)
+  </Card>
+</CardGrid>
+
+## Try It Now
+
+```bash
+# Install
+npm install -g @artemiskit/cli
+
+# Run a scenario
+akit run scenarios/hello-world.yaml
+```
+
+## Packages
 
 | Package | npm Name | Description |
 |---------|----------|-------------|
@@ -30,36 +68,27 @@ ArtemisKit is available as multiple packages:
 | LangChain Adapter | `@artemiskit/adapter-langchain` | LangChain chains and agents |
 | DeepAgents Adapter | `@artemiskit/adapter-deepagents` | DeepAgents multi-agent systems |
 
-## Choose Your Path
+## Explore
 
 <CardGrid>
-  <Card title="CLI (@artemiskit/cli)" icon="terminal">
-    Start here. Run evaluations from the terminal, integrate with CI/CD, generate reports. Most teams use this.
+  <Card title="Examples & Cookbook" icon="list-format">
+    CI/CD integration, security testing, regression detection recipes.
 
-    [Get started →](/docs/cli/getting-started/)
+    [View examples →](/docs/examples/)
   </Card>
-  <Card title="SDK (@artemiskit/sdk)" icon="puzzle">
-    Embed evaluations in your code. Includes Guardian Mode for runtime protection, Jest/Vitest matchers, and programmatic evaluation API.
+  <Card title="Guardian Mode" icon="shield">
+    Runtime protection with semantic validation and injection detection.
 
-    [Learn more →](/docs/sdk/)
+    [Learn more →](/docs/sdk/guardian/)
   </Card>
 </CardGrid>
 
-## Try It Now
-
-```bash
-# Install
-npm install -g @artemiskit/cli
-
-# Run a scenario
-akit run scenarios/hello-world.yaml
-```
-
 ## What's Next
 
-- [CLI Overview](/docs/cli/) — Commands, options, configuration
-- [SDK Overview](/docs/sdk/) — Programmatic API, Guardian Mode, test matchers
-- [Guardian Mode](/docs/sdk/guardian/) — Runtime protection for AI applications
+- [Getting Started](/docs/getting-started/) — Your first test in 5 minutes
+- [Core Concepts](/docs/concepts/) — Scenarios, expectations, providers, evaluators
+- [CLI Commands](/docs/cli/commands/run/) — run, redteam, stress, validate, compare
+- [SDK API](/docs/sdk/evaluation/) — Programmatic evaluation
 - [Providers](/docs/cli/providers/) — OpenAI, Anthropic, Azure, Vercel AI SDK
 - [Agentic Adapters](/docs/sdk/adapters/) — LangChain, DeepAgents integration
-- [Storage](/docs/cli/storage/) — Local or Supabase result storage
+- [Examples](/docs/examples/) — CI/CD, security testing, regression detection

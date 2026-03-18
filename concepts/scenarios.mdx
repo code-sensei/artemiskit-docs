@@ -1,0 +1,309 @@
+---
+title: Scenarios
+description: Test suites containing prompts and expectations for evaluating LLM outputs
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Scenarios
+
+Scenarios are the core unit of testing in ArtemisKit. A scenario is a collection of test cases that define prompts to send to an LLM and expectations for evaluating the responses.
+
+## Structure
+
+Every scenario contains:
+
+- **Metadata** — Name, description, version, tags
+- **Provider configuration** — Which LLM to use and how to configure it
+- **Setup** — System prompts and function definitions
+- **Test cases** — Individual prompts with expected outcomes
+- **Variables** — Template values for dynamic content
+
+```yaml
+name: customer-support-bot
+description: Evaluate customer support responses
+version: "1.0"
+provider: openai
+model: gpt-4
+
+setup:
+  systemPrompt: "You are a helpful customer support agent."
+
+variables:
+  company: "TechCorp"
+
+cases:
+  - id: greeting-test
+    prompt: "Hello!"
+    expected:
+      type: contains
+      values: ["hello", "hi", "welcome"]
+      mode: any
+```
+
+## Provider Configuration
+
+Scenarios can specify which LLM provider to use at multiple levels:
+
+| Level | Scope | Example |
+|-------|-------|---------|
+| Scenario | All cases in scenario | `provider: openai` at root |
+| Case | Single test case | `provider: anthropic` in case |
+
+### Supported Providers
+
+| Provider | Value | Description |
+|----------|-------|-------------|
+| OpenAI | `openai` | GPT models via OpenAI API |
+| Azure OpenAI | `azure-openai` | GPT models via Azure |
+| Anthropic | `anthropic` | Claude models |
+| Vercel AI | `vercel-ai` | Vercel AI SDK |
+| Google | `google` | Gemini models |
+| Mistral | `mistral` | Mistral AI models |
+| Cohere | `cohere` | Cohere models |
+| Ollama | `ollama` | Local models via Ollama |
+| LangChain | `langchain` | LangChain runnables |
+| DeepAgents | `deepagents` | DeepAgents systems |
+| Custom | `custom` | Custom adapters |
+
+### Provider-Specific Config
+
+Use `providerConfig` for provider-specific settings:
+
+```yaml
+provider: azure-openai
+model: gpt-4
+
+providerConfig:
+  resourceName: my-azure-resource
+  deploymentName: my-deployment
+  apiVersion: 2024-02-15-preview
+```
+
+## Test Cases
+
+Each test case requires:
+
+- **id** — Unique identifier within the scenario
+- **prompt** — The input to send to the LLM
+- **expected** — How to evaluate the response
+
+### Single-Turn Prompts
+
+Simple string prompts for single-turn interactions:
+
+```yaml
+cases:
+  - id: math-test
+    prompt: "What is 2 + 2?"
+    expected:
+      type: contains
+      values: ["4"]
+```
+
+### Multi-Turn Conversations
+
+Array of messages for conversation testing:
+
+```yaml
+cases:
+  - id: context-test
+    prompt:
+      - role: user
+        content: "My name is Alice"
+      - role: assistant
+        content: "Nice to meet you, Alice!"
+      - role: user
+        content: "What is my name?"
+    expected:
+      type: contains
+      values: ["Alice"]
+```
+
+<Aside type="note">
+The system prompt from `setup.systemPrompt` is automatically prepended to multi-turn conversations.
+</Aside>
+
+### Case-Level Overrides
+
+Override scenario defaults at the case level:
+
+```yaml
+cases:
+  - id: test-with-claude
+    prompt: "Hello"
+    provider: anthropic
+    model: claude-3-5-sonnet-20241022
+    timeout: 60000
+    retries: 2
+    expected:
+      type: contains
+      values: ["hello"]
+```
+
+## Variables
+
+Variables enable template substitution using `{{variable}}` syntax:
+
+```yaml
+variables:
+  product: "ArtemisKit"
+  version: "1.0"
+
+cases:
+  - id: product-test
+    prompt: "Tell me about {{product}} version {{version}}"
+    expected:
+      type: contains
+      values: ["{{product}}"]
+    variables:
+      version: "2.0"  # Case-level override
+```
+
+Variables support strings, numbers, and booleans:
+
+```yaml
+variables:
+  name: "Alice"      # string
+  count: 42          # number
+  enabled: true      # boolean
+```
+
+## Tags
+
+Tags allow filtering and organizing test cases:
+
+```yaml
+# Scenario-level tags (apply to all cases)
+name: my-scenario
+tags: [production, critical]
+
+cases:
+  # Case-level tags (merged with scenario tags)
+  - id: quick-test
+    tags: [smoke, quick]
+    prompt: "Hello"
+    expected:
+      type: contains
+      values: ["hello"]
+```
+
+Run specific tags:
+
+```bash
+akit run scenarios/ --tags smoke
+akit run scenarios/ --tags smoke,critical
+```
+
+## Redaction
+
+Configure PII/sensitive data redaction:
+
+```yaml
+redaction:
+  enabled: true
+  patterns:
+    - email
+    - phone
+    - credit_card
+    - ssn
+    - api_key
+  redactPrompts: true
+  redactResponses: true
+  replacement: "[REDACTED]"
+```
+
+### Built-in Patterns
+
+| Pattern | Description |
+|---------|-------------|
+| `email` | Email addresses |
+| `phone` | Phone numbers |
+| `credit_card` | Credit card numbers |
+| `ssn` | Social Security Numbers |
+| `api_key` | API keys and tokens |
+| `ipv4` | IPv4 addresses |
+| `jwt` | JWT tokens |
+| `aws_key` | AWS access keys |
+| `secrets` | Generic secrets |
+
+## Setup and Teardown
+
+Configure scenario-level setup and cleanup:
+
+```yaml
+setup:
+  systemPrompt: "You are a helpful assistant."
+  functions: []  # Function definitions for function calling
+
+teardown:
+  cleanup: true  # Clean up resources after run
+```
+
+## Full Example
+
+```yaml
+name: customer-support-evaluation
+description: Comprehensive test suite for support bot
+version: "1.0"
+provider: openai
+model: gpt-4
+seed: 42
+temperature: 0.7
+
+tags: [production, support]
+
+variables:
+  company: "TechCorp"
+  product: "Widget Pro"
+
+setup:
+  systemPrompt: |
+    You are a customer support agent for {{company}}.
+    Be helpful, professional, and accurate.
+
+redaction:
+  enabled: true
+  patterns: [email, phone]
+
+cases:
+  - id: greeting
+    name: Greeting Test
+    description: Test basic greeting response
+    tags: [smoke]
+    prompt: "Hello!"
+    expected:
+      type: contains
+      values: ["hello", "hi", "welcome"]
+      mode: any
+
+  - id: product-info
+    name: Product Information
+    tags: [product]
+    prompt: "Tell me about {{product}}"
+    expected:
+      type: llm_grader
+      rubric: "Response accurately describes the product"
+      threshold: 0.7
+
+  - id: multi-turn
+    name: Context Retention
+    tags: [advanced]
+    prompt:
+      - role: user
+        content: "I bought {{product}} last week"
+      - role: assistant
+        content: "Great choice! How can I help with your {{product}}?"
+      - role: user
+        content: "What did I buy?"
+    expected:
+      type: contains
+      values: ["{{product}}"]
+```
+
+## See Also
+
+- [Expectations](/docs/concepts/expectations/) — Learn about expectation types
+- [Providers](/docs/concepts/providers/) — Configure LLM providers
+- [CLI Run Command](/docs/cli/commands/run/) — Execute scenarios
+- [Scenario Format Reference](/docs/cli/scenarios/format/) — Complete YAML reference

@@ -1,72 +1,87 @@
 ---
-title: API Overview
-description: ArtemisKit Core API documentation
+title: API Reference
+description: ArtemisKit API documentation - redirects to SDK
 ---
 
 import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 
-# ArtemisKit API
+# API Reference
 
-The ArtemisKit API provides programmatic access to LLM evaluation, testing, and runtime protection.
+<Aside type="note">
+  The API documentation has moved to the SDK section for better organization.
+</Aside>
 
 <CardGrid>
   <Card title="SDK Documentation" icon="document">
-    See the [SDK Documentation](/docs/sdk/) for the full programmatic API including Guardian Mode, evaluation, and test matchers.
+    Full programmatic API including evaluation, Guardian Mode, and test matchers.
+
+    [View SDK docs →](/docs/sdk/)
+  </Card>
+  <Card title="Evaluation API" icon="rocket">
+    `kit.run()`, `kit.validate()`, `kit.compare()`, `kit.redteam()`, `kit.stress()`
+
+    [View Evaluation API →](/docs/sdk/evaluation/)
   </Card>
   <Card title="Guardian Mode" icon="shield">
-    See [Guardian Mode](/docs/sdk/guardian/) for runtime protection, injection detection, and action validation.
+    Runtime protection with semantic validation and injection detection.
+
+    [View Guardian docs →](/docs/sdk/guardian/)
+  </Card>
+  <Card title="Scenario Builders" icon="puzzle">
+    Programmatic scenario construction with TypeScript builders.
+
+    [View Builders →](/docs/sdk/builders/)
   </Card>
 </CardGrid>
 
-## Core Package
+## Quick Reference
 
-The `@artemiskit/core` package provides the foundation for all ArtemisKit functionality:
+### Core Package (`@artemiskit/core`)
 
 ```typescript
 import { createAdapter } from '@artemiskit/core';
 
-// Create a provider adapter
 const client = await createAdapter({
   provider: 'openai',
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Generate a response
 const result = await client.generate({
   prompt: 'What is 2+2?',
   maxTokens: 100,
 });
-
-console.log(result.text); // "4"
 ```
 
-## SDK Package
-
-The `@artemiskit/sdk` package provides high-level APIs for evaluation and protection:
+### SDK Package (`@artemiskit/sdk`)
 
 ```typescript
 import { ArtemisKit } from '@artemiskit/sdk';
+
+const kit = new ArtemisKit({
+  provider: 'openai',
+  model: 'gpt-4',
+});
+
+const results = await kit.run({
+  scenario: './scenarios/quality.yaml',
+});
+```
+
+### Guardian Mode
+
+```typescript
 import { createGuardian } from '@artemiskit/sdk/guardian';
 
-// Programmatic evaluation
-const artemis = new ArtemisKit({
-  provider: 'openai',
-  apiKey: process.env.OPENAI_API_KEY,
+const guardian = createGuardian({
+  mode: 'selective',
+  contentValidation: { strategy: 'semantic' },
 });
 
-const result = await artemis.evaluate({
-  prompt: 'What is 2+2?',
-  expected: { type: 'contains', values: ['4'] },
-});
-
-// Runtime protection
-const guardian = createGuardian({ mode: 'guardian' });
-const protectedClient = guardian.protect(myClient);
+const protectedClient = guardian.protect(client);
 ```
 
 ## See Also
 
 - [SDK Overview](/docs/sdk/) — Full SDK documentation
-- [Guardian Mode](/docs/sdk/guardian/) — Runtime protection
-- [CLI Documentation](/docs/cli/) — Command-line interface
-- [Getting Started](/docs/cli/getting-started/) — Quick start guide
+- [Core Concepts](/docs/concepts/) — Scenarios, expectations, providers
+- [Examples](/docs/examples/) — Practical recipes

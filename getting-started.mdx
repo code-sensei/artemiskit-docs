@@ -1,0 +1,246 @@
+---
+title: Getting Started
+description: Your first ArtemisKit test in 5 minutes. Install, configure, run.
+---
+
+import { Aside, Steps, Tabs, TabItem, Card, CardGrid } from '@astrojs/starlight/components';
+
+# Getting Started
+
+From zero to your first passing test. Five minutes.
+
+## Prerequisites
+
+- Node.js 18+ or Bun 1.0+
+- An API key for your LLM provider (OpenAI, Azure, Anthropic, etc.)
+
+## Choose Your Path
+
+<CardGrid>
+  <Card title="CLI (Command Line)" icon="terminal">
+    Install the CLI globally and run tests from your terminal.
+    Best for: CI/CD, quick testing, team workflows
+  </Card>
+  <Card title="SDK (Programmatic)" icon="code">
+    Import the SDK into your TypeScript/JavaScript project.
+    Best for: Embedded testing, custom integrations, runtime protection
+  </Card>
+</CardGrid>
+
+---
+
+## CLI Quick Start
+
+<Steps>
+
+1. **Install the CLI**
+
+   ```bash
+   npm install -g @artemiskit/cli
+   # Or with Bun
+   bun add -g @artemiskit/cli
+   ```
+
+   Verify installation:
+
+   ```bash
+   akit --version
+   ```
+
+2. **Set up your API key**
+
+   <Tabs>
+   <TabItem label="OpenAI">
+   ```bash
+   export OPENAI_API_KEY="sk-your-api-key"
+   ```
+   </TabItem>
+   <TabItem label="Anthropic">
+   ```bash
+   export ANTHROPIC_API_KEY="sk-ant-..."
+   ```
+   </TabItem>
+   <TabItem label="Azure">
+   ```bash
+   export AZURE_OPENAI_API_KEY="your-key"
+   export AZURE_OPENAI_RESOURCE_NAME="your-resource"
+   export AZURE_OPENAI_DEPLOYMENT_NAME="your-deployment"
+   ```
+   </TabItem>
+   </Tabs>
+
+3. **Create your first scenario**
+
+   Create `hello-world.yaml`:
+
+   ```yaml
+   name: hello-world
+   description: My first ArtemisKit test
+   provider: openai
+   model: gpt-4
+
+   cases:
+     - id: basic-math
+       prompt: "What is 2 + 2?"
+       expected:
+         type: contains
+         values: ["4"]
+
+     - id: greeting
+       prompt: "Say hello in a friendly way"
+       expected:
+         type: contains
+         values: ["hello", "hi", "hey"]
+         mode: any
+   ```
+
+4. **Run the test**
+
+   ```bash
+   akit run hello-world.yaml
+   ```
+
+   Output:
+
+   ```
+   Running scenario: hello-world
+     ✓ basic-math (234ms)
+     ✓ greeting (189ms)
+
+   Results: 2/2 passed (100%)
+   ```
+
+5. **Save and view results**
+
+   ```bash
+   akit run hello-world.yaml --save
+   ```
+
+   Results are saved to `artemis-output/` with a `run_manifest.json` and timestamped report.
+
+</Steps>
+
+---
+
+## SDK Quick Start
+
+<Steps>
+
+1. **Install the SDK**
+
+   ```bash
+   npm install @artemiskit/sdk
+   # Or with Bun
+   bun add @artemiskit/sdk
+   ```
+
+2. **Run your first evaluation**
+
+   ```typescript
+   import { ArtemisKit } from '@artemiskit/sdk';
+
+   const kit = new ArtemisKit({
+     provider: 'openai',
+     model: 'gpt-4',
+     providerConfig: {
+       apiKey: process.env.OPENAI_API_KEY,
+     },
+   });
+
+   const results = await kit.run({
+     scenario: {
+       name: 'inline-test',
+       cases: [
+         {
+           id: 'math-test',
+           prompt: 'What is 2 + 2?',
+           expected: {
+             type: 'contains',
+             values: ['4'],
+           },
+         },
+       ],
+     },
+   });
+
+   console.log(`Pass rate: ${results.manifest.metrics.pass_rate * 100}%`);
+   ```
+
+3. **Or use a YAML scenario file**
+
+   ```typescript
+   const results = await kit.run({
+     scenario: './hello-world.yaml',
+   });
+   ```
+
+4. **Add runtime protection (Guardian)**
+
+   ```typescript
+   import { createGuardian } from '@artemiskit/sdk/guardian';
+   import { createAdapter } from '@artemiskit/core';
+
+   const client = await createAdapter({
+     provider: 'openai',
+     apiKey: process.env.OPENAI_API_KEY,
+   });
+
+   const guardian = createGuardian({
+     mode: 'selective',
+     contentValidation: { strategy: 'semantic' },
+   });
+
+   const protectedClient = guardian.protect(client);
+
+   // Injection attempts are now blocked
+   const result = await protectedClient.generate({
+     prompt: 'What is the capital of France?',
+   });
+   ```
+
+</Steps>
+
+---
+
+## Create a Config File (Optional)
+
+For consistent settings across runs, create `artemis.config.yaml`:
+
+```yaml
+provider: openai
+model: gpt-4
+
+providers:
+  openai:
+    apiKey: ${OPENAI_API_KEY}
+    timeout: 60000
+
+output:
+  format: json
+  dir: ./artemis-output
+```
+
+Now you can run scenarios without specifying provider/model each time:
+
+```bash
+akit run hello-world.yaml
+```
+
+---
+
+## What's Next
+
+<CardGrid>
+  <Card title="Concepts" icon="rocket">
+    [Learn core concepts](/docs/concepts/) — Scenarios, expectations, providers, evaluators
+  </Card>
+  <Card title="CLI Commands" icon="terminal">
+    [Explore CLI commands](/docs/cli/commands/run/) — run, redteam, stress, compare
+  </Card>
+  <Card title="SDK Documentation" icon="code">
+    [SDK API](/docs/sdk/) — Programmatic evaluation and Guardian mode
+  </Card>
+  <Card title="Examples" icon="document">
+    [Cookbook examples](/docs/examples/) — CI/CD, security testing, regression detection
+  </Card>
+</CardGrid>
