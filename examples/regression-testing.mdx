@@ -1,11 +1,11 @@
 ---
 title: Regression Testing
 description: Detect quality regressions across model updates and prompt changes
+editUrl: "https://github.com/code-sensei/artemiskit-docs/edit/main/examples/regression-testing.mdx"
 ---
 
 import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
 
-# Regression Testing
 
 Detect quality regressions when updating models, prompts, or configurations.
 
@@ -70,7 +70,7 @@ akit baseline set run_abc123 --name "v1.0-release"
 # List all baselines
 akit baseline list
 
-# Output:
+# Illustrative output (actual timing and results vary):
 # Baselines:
 #   quality.yaml: run_abc123 (set 2024-03-15)
 #   security.yaml: run_def456 (set 2024-03-14)

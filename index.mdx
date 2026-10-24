@@ -1,94 +1,43 @@
 ---
 title: ArtemisKit Documentation
-description: Open-source LLM testing toolkit. Test, secure, and stress-test your AI applications with one CLI.
+description: Install, configure and use the open-source AI assurance toolkit by Vorbtech Innovative Solutions.
+editUrl: "https://github.com/code-sensei/artemiskit-docs/edit/main/index.mdx"
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+ArtemisKit is an open-source AI assurance toolkit by **Vorbtech Innovative Solutions**. Define scenarios, evaluate responses, probe security boundaries, run controlled agent workflows and inspect saved evidence.
 
-# Ship AI You Trust
+## Start here
 
-ArtemisKit is the open-source toolkit for testing LLM applications. One CLI. Three capabilities:
+- [Installation](/docs/cli/installation/) — the CLI requires Bun, including with npm installation.
+- [Getting started](/docs/getting-started/) — configure a provider and run a small scenario.
+- [Core concepts](/docs/concepts/) — scenarios, expectations, providers and evaluators.
+- [CLI reference](/docs/reference/cli/) and [SDK reference](/docs/reference/sdk/) — source-backed interfaces.
 
-- **Test** — Evaluate outputs with scenario-based quality gates
-- **Secure** — Red team your LLM before attackers do
-- **Stress** — Know your latency limits before users find them
+## Test models and applications
 
-## Get Started
+- [Scenario format](/docs/cli/scenarios/format/)
+- [Evaluators](/docs/concepts/evaluators/)
+- [Provider setup](/docs/cli/providers/)
+- [Red teaming](/docs/cli/commands/redteam/)
+- [Stress testing](/docs/cli/commands/stress/)
+- [CI/CD](/docs/cli/ci-cd/)
+- [Storage](/docs/cli/storage/)
+- [SDK and framework adapters](/docs/sdk/)
 
-<CardGrid>
-  <Card title="Quick Start" icon="rocket">
-    From zero to your first test in 5 minutes. Install, configure, run.
+## Evaluate tool-using workflows
 
-    [Get started →](/docs/getting-started/)
-  </Card>
-  <Card title="Core Concepts" icon="document">
-    Understand scenarios, expectations, providers, and evaluators.
+1. [Declare the workflow contract](/docs/workflows/contract/).
+2. [Configure controlled execution and preflight](/docs/workflows/execution/).
+3. [Check outcomes independently](/docs/workflows/outcomes/).
+4. [Handle faults and recovery](/docs/workflows/recovery/).
+5. [Generate offline reports](/docs/workflows/reports/).
 
-    [Learn concepts →](/docs/concepts/)
-  </Card>
-</CardGrid>
+## Understand the evidence
 
-## Choose Your Interface
+Read the [reproducibility guide](/docs/reference/reproducible-evidence/) and [current release record](/docs/reference/release-0-6-4/). Invalid and unavailable workflow measurements remain distinct from eligible passed/failed outcomes. A passing test does not certify legal compliance or guarantee safety.
 
-<CardGrid>
-  <Card title="CLI (@artemiskit/cli)" icon="terminal">
-    Run evaluations from the terminal, integrate with CI/CD, generate reports. Most teams start here.
+## Versions and source
 
-    [CLI Documentation →](/docs/cli/)
-  </Card>
-  <Card title="SDK (@artemiskit/sdk)" icon="puzzle">
-    Embed evaluations in your code. Includes Guardian Mode for runtime protection and Jest/Vitest matchers.
+The source-backed workflow and package references identify their exact core-repository snapshot. The current recorded release milestone is 0.6.4, with independent package versions (CLI/SDK 0.6.3). Consult its package map rather than treating a milestone number as every package's version.
 
-    [SDK Documentation →](/docs/sdk/)
-  </Card>
-</CardGrid>
-
-## Try It Now
-
-```bash
-# Install
-npm install -g @artemiskit/cli
-
-# Run a scenario
-akit run scenarios/hello-world.yaml
-```
-
-## Packages
-
-| Package | npm Name | Description |
-|---------|----------|-------------|
-| CLI | `@artemiskit/cli` | Command-line interface (`artemiskit`, `akit`) |
-| SDK | `@artemiskit/sdk` | Programmatic API, Guardian Mode, test matchers |
-| Core | `@artemiskit/core` | Core evaluation engine |
-| Reports | `@artemiskit/reports` | HTML/JSON report generation |
-| Red Team | `@artemiskit/redteam` | Security testing and mutations |
-| OpenAI Adapter | `@artemiskit/adapter-openai` | OpenAI and Azure OpenAI adapter |
-| Anthropic Adapter | `@artemiskit/adapter-anthropic` | Anthropic Claude adapter |
-| Vercel AI Adapter | `@artemiskit/adapter-vercel-ai` | Vercel AI SDK adapter |
-| LangChain Adapter | `@artemiskit/adapter-langchain` | LangChain chains and agents |
-| DeepAgents Adapter | `@artemiskit/adapter-deepagents` | DeepAgents multi-agent systems |
-
-## Explore
-
-<CardGrid>
-  <Card title="Examples & Cookbook" icon="list-format">
-    CI/CD integration, security testing, regression detection recipes.
-
-    [View examples →](/docs/examples/)
-  </Card>
-  <Card title="Guardian Mode" icon="shield">
-    Runtime protection with semantic validation and injection detection.
-
-    [Learn more →](/docs/sdk/guardian/)
-  </Card>
-</CardGrid>
-
-## What's Next
-
-- [Getting Started](/docs/getting-started/) — Your first test in 5 minutes
-- [Core Concepts](/docs/concepts/) — Scenarios, expectations, providers, evaluators
-- [CLI Commands](/docs/cli/commands/run/) — run, redteam, stress, validate, compare
-- [SDK API](/docs/sdk/evaluation/) — Programmatic evaluation
-- [Providers](/docs/cli/providers/) — OpenAI, Anthropic, Azure, Vercel AI SDK
-- [Agentic Adapters](/docs/sdk/adapters/) — LangChain, DeepAgents integration
-- [Examples](/docs/examples/) — CI/CD, security testing, regression detection
+[Source code](https://github.com/code-sensei/artemiskit) · [Releases](https://github.com/code-sensei/artemiskit/releases) · [Contribution guide](https://github.com/code-sensei/artemiskit/blob/main/CONTRIBUTING.md)

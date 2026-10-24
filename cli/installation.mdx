@@ -1,67 +1,54 @@
 ---
 title: Installation
-description: Install ArtemisKit CLI on your system
+description: Install ArtemisKit CLI with Bun available, configure a provider and verify the installed package.
+editUrl: "https://github.com/code-sensei/artemiskit-docs/edit/main/cli/installation.mdx"
 ---
 
-# Installation
+## Runtime requirements
 
-Get ArtemisKit CLI installed on your system.
+The CLI requires **Bun**, including when the package is installed with npm or pnpm. Node alone does not execute the CLI. The current 0.6.4 milestone was qualified with Bun 1.3.10; the Node SDK/report interfaces were qualified with Node 24.18.0. See the [release record](/docs/reference/release-0-6-4/) for the full qualification boundary.
 
-## Prerequisites
+Install Bun using its [official installation instructions](https://bun.sh/docs/installation), then check the runtime:
 
-- Node.js 18+ or Bun 1.0+
-- An API key for your LLM provider (OpenAI, Azure, Anthropic, etc.)
+```bash
+bun --version
+```
 
-## Install via npm
+## Install the CLI
+
+Choose one package manager:
 
 ```bash
 npm install -g @artemiskit/cli
-```
-
-## Install via pnpm
-
-```bash
+# or
 pnpm add -g @artemiskit/cli
-```
-
-## Install via yarn
-
-```bash
-yarn global add @artemiskit/cli
-```
-
-## Install via bun
-
-```bash
+# or
 bun add -g @artemiskit/cli
 ```
 
-## Verify Installation
+## Verify the installed version
 
 ```bash
-artemiskit --version
-# or
 akit --version
+akit --help
 ```
 
-You should see output like:
+`akit` and `artemiskit` are aliases for the same CLI. Milestone and package versions are independent: the 0.6.4 milestone publishes CLI 0.6.3. Your installed output depends on the selected package version; consult the release's package map when pinning.
 
-```
-ArtemisKit CLI v0.1.3
-```
+## Run without a global install
 
-## Run Without Installing
-
-You can also run ArtemisKit without global installation:
+With Bun installed:
 
 ```bash
-npx @artemiskit/cli run scenarios/test.yaml
-# or
-bunx @artemiskit/cli run scenarios/test.yaml
+bunx @artemiskit/cli --help
 ```
 
-## Next Steps
+## Before making provider calls
 
-- [Getting Started](/docs/getting-started/) — Run your first evaluation
-- [Scenarios](/docs/concepts/scenarios/) — Learn the scenario format
-- [CLI Commands](/docs/cli/commands/run/) — Command reference
+Configure an authorised provider key and a model available to your account. Keep secrets out of scenario files and Git. Model calls may incur provider costs. Workflow validation is offline; preflight can make a bounded provider probe.
+
+## Next steps
+
+- [Run a first evaluation](/docs/getting-started/)
+- [Current CLI reference](/docs/reference/cli/)
+- [Agent workflow contract](/docs/workflows/contract/)

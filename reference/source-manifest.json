@@ -1,0 +1,27 @@
+{
+  "repository": "code-sensei/artemiskit",
+  "commit": "e58778bef40bf77b4294805e47f2d16c89cece0a",
+  "synced": "2026-10-24",
+  "pages": {
+    "workflows/contract": "docs/agent-workflow.md",
+    "workflows/execution": "docs/workflow-execution.md",
+    "workflows/outcomes": "docs/workflow-outcomes.md",
+    "workflows/recovery": "docs/workflow-recovery.md",
+    "workflows/reports": "docs/workflow-reports.md",
+    "reference/reproducible-evidence": "docs/reproducible-evidence.md",
+    "workflows/trueforge": "docs/agent-evaluation/trueforge.md",
+    "reference/anthropic": "docs/providers/anthropic.md",
+    "reference/azure-openai": "docs/providers/azure-openai.md",
+    "reference/openai": "docs/providers/openai.md",
+    "reference/vercel-ai": "docs/providers/vercel-ai.md",
+    "reference/local-storage": "docs/storage/local.md",
+    "reference/supabase-storage": "docs/storage/supabase.md",
+    "reference/release-0-6-4": "docs/releases/0.6.4.md",
+    "reference/cli": "packages/cli/README.md",
+    "reference/sdk": "packages/sdk/README.md",
+    "reference/core": "packages/core/README.md",
+    "reference/redteam": "packages/redteam/README.md",
+    "reference/reports": "packages/reports/README.md",
+    "reference/ling": "packages/adapters/ling/README.md"
+  }
+}

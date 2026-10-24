@@ -1,11 +1,11 @@
 ---
 title: Scenarios
 description: Test suites containing prompts and expectations for evaluating LLM outputs
+editUrl: "https://github.com/code-sensei/artemiskit-docs/edit/main/concepts/scenarios.mdx"
 ---
 
 import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
-# Scenarios
 
 Scenarios are the core unit of testing in ArtemisKit. A scenario is a collection of test cases that define prompts to send to an LLM and expectations for evaluating the responses.
 
@@ -24,7 +24,7 @@ name: customer-support-bot
 description: Evaluate customer support responses
 version: "1.0"
 provider: openai
-model: gpt-4
+model: gpt-4o
 
 setup:
   systemPrompt: "You are a helpful customer support agent."
@@ -72,7 +72,7 @@ Use `providerConfig` for provider-specific settings:
 
 ```yaml
 provider: azure-openai
-model: gpt-4
+model: gpt-4o
 
 providerConfig:
   resourceName: my-azure-resource
@@ -247,7 +247,7 @@ name: customer-support-evaluation
 description: Comprehensive test suite for support bot
 version: "1.0"
 provider: openai
-model: gpt-4
+model: gpt-4o
 seed: 42
 temperature: 0.7
 

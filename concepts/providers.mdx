@@ -1,11 +1,11 @@
 ---
 title: Providers
 description: LLM provider configurations for OpenAI, Anthropic, Azure, and more
+editUrl: "https://github.com/code-sensei/artemiskit-docs/edit/main/concepts/providers.mdx"
 ---
 
 import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
-# Providers
 
 Providers are adapters that connect ArtemisKit to different LLM services. Each provider implements a common interface, allowing you to switch between models without changing your test scenarios.
 
@@ -63,7 +63,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 ```yaml
 # artemis.config.yaml
 provider: openai
-model: gpt-4
+model: gpt-4o
 
 providers:
   openai:
@@ -86,7 +86,7 @@ providers:
 ```yaml
 name: my-scenario
 provider: openai
-model: gpt-4
+model: gpt-4o
 
 providerConfig:
   timeout: 120000
@@ -106,7 +106,7 @@ cases:
 
 ```yaml
 provider: openai
-model: gpt-4
+model: gpt-4o
 
 providerConfig:
   apiKey: ${OPENAI_API_KEY}
@@ -122,7 +122,7 @@ providerConfig:
 
 ```yaml
 provider: azure-openai
-model: gpt-4
+model: gpt-4o
 
 providerConfig:
   apiKey: ${AZURE_OPENAI_API_KEY}
@@ -155,7 +155,7 @@ providerConfig:
 
 ```yaml
 provider: vercel-ai
-model: gpt-4
+model: gpt-4o
 
 providerConfig:
   underlyingProvider: openai  # openai | azure | anthropic | google | mistral

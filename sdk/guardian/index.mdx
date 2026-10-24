@@ -1,11 +1,11 @@
 ---
 title: Guardian Mode
 description: Runtime protection for AI/LLM applications with semantic validation, injection detection, and content filtering
+editUrl: "https://github.com/code-sensei/artemiskit-docs/edit/main/sdk/guardian/index.mdx"
 ---
 
 import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
 
-# Guardian Mode
 
 Guardian Mode provides runtime protection for AI/LLM applications. It intercepts requests and responses to detect and block harmful content, unauthorized actions, and security threats.
 
@@ -568,7 +568,7 @@ const intents = await guardian.classifyIntent(
 for (const intent of intents) {
   console.log(`${intent.intent}: ${intent.confidence * 100}% (${intent.riskLevel})`);
 }
-// Output:
+// Illustrative output (actual timing and results vary):
 // destructive_action: 85% (critical)
 // financial_transaction: 72% (high)
 ```

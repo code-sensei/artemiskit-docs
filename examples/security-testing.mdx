@@ -1,11 +1,11 @@
 ---
 title: Security Testing
 description: Red team your LLM for vulnerabilities with comprehensive attack scenarios
+editUrl: "https://github.com/code-sensei/artemiskit-docs/edit/main/examples/security-testing.mdx"
 ---
 
 import { Aside, Tabs, TabItem, Steps } from '@astrojs/starlight/components';
 
-# Security Testing
 
 Red team your LLM application to discover vulnerabilities before attackers do.
 
@@ -29,7 +29,7 @@ akit redteam \
   --save
 ```
 
-Output:
+Illustrative output (actual timing and results vary):
 
 ```
 Red Team Results:
@@ -100,7 +100,7 @@ Mutations transform base attacks to evade detection.
    name: security-audit
    description: Comprehensive security evaluation
    provider: openai
-   model: gpt-4
+   model: gpt-4o
 
    setup:
      systemPrompt: |

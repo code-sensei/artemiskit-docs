@@ -1,0 +1,143 @@
+---
+title: "Core package reference"
+description: "Core package reference \u2014 source-backed ArtemisKit guide, synced from the core repository."
+editUrl: "https://github.com/code-sensei/artemiskit/blob/main/packages/core/README.md"
+---
+
+> Source: [core repository guide](https://github.com/code-sensei/artemiskit/blob/e58778bef40bf77b4294805e47f2d16c89cece0a/packages/core/README.md), snapshot `e58778bef40b`. Synced 2026-10-24. Package versions are independent of milestone labels.
+
+
+Core runtime, evaluators, and storage for the ArtemisKit LLM evaluation toolkit.
+
+## Installation
+
+```bash
+npm install @artemiskit/core
+# or
+bun add @artemiskit/core
+```
+
+## Overview
+
+This package provides the foundational components for ArtemisKit:
+
+- **Runner** - Execute test scenarios against LLM providers
+- **Evaluators** - Built-in expectation matchers (contains, exact, regex, fuzzy, llm_grader, json_schema)
+- **Storage** - Local filesystem and Supabase storage backends
+- **Redaction** - PII/sensitive data filtering with built-in patterns
+- **Schema** - YAML scenario parsing and validation
+
+## Usage
+
+Controlled agent workflows use `createAgentWorkflowSession({ workflow, target })` or
+`runAgentWorkflow({ workflow, target })`, with `createModelClientTarget(client)` for existing adapters.
+The native session enforces declared tools, original argument schemas, permissions, cumulative
+budgets, and bounded cancellation/cleanup. Environments are fresh simulated state or a disposable
+Docker filesystem; unsupported authority fails closed.
+
+The returned `record` contains bounded metadata. `state` and `transcript` are sensitive working data
+and are not persisted automatically. The 0.6.2 engine independently checks declared outcomes;
+optional qualitative checks require explicit `semanticJudge` configuration with separate limits.
+`readWorkflowRecord` validates V1/V2 metadata without rescoring historical runs. See the
+[outcome guide](https://github.com/code-sensei/artemiskit/blob/main/docs/workflow-outcomes.md) and
+[execution guide](https://github.com/code-sensei/artemiskit/blob/main/docs/workflow-execution.md)
+for session events, transport limits, Docker prerequisites, and CLI/SDK use.
+
+Most users should use the [`@artemiskit/cli`](https://www.npmjs.com/package/@artemiskit/cli) package for running evaluations. This package is primarily for programmatic usage or building custom integrations.
+
+```typescript
+import { 
+  parseScenarioFile, 
+  runScenario, 
+  createAdapter 
+} from '@artemiskit/core';
+
+// Parse a scenario file
+const scenario = await parseScenarioFile('./my-test.yaml');
+
+// Create an adapter (requires adapter package to be registered)
+const client = await createAdapter({
+  provider: 'openai',
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Run the scenario
+const result = await runScenario({
+  scenario,
+  client,
+  project: 'my-project',
+  onCaseComplete: (caseResult, index, total) => {
+    console.log(`Completed ${index + 1}/${total}: ${caseResult.passed ? 'PASS' : 'FAIL'}`);
+  },
+});
+
+console.log(`Success: ${result.success}`);
+console.log(`Passed: ${result.manifest.metrics.passed_cases}/${result.manifest.metrics.total_cases}`);
+```
+
+**Note:** The `createAdapter` function requires adapter packages (like `@artemiskit/adapter-openai`) to be installed and registered. For standalone usage, import adapters directly:
+
+```typescript
+import { OpenAIAdapter } from '@artemiskit/adapter-openai';
+
+const client = new OpenAIAdapter({
+  provider: 'openai',
+  apiKey: process.env.OPENAI_API_KEY,
+});
+```
+
+## Evaluators
+
+Built-in expectation types:
+
+| Type | Description |
+|------|-------------|
+| `contains` | Check if response contains text |
+| `not_contains` | Check if response does NOT contain text |
+| `exact` | Exact string match |
+| `regex` | Regular expression match |
+| `fuzzy` | Fuzzy string similarity (Levenshtein) |
+| `similarity` | Semantic similarity matching (embedding or LLM-based) |
+| `llm_grader` | LLM-based response grading |
+| `json_schema` | Validate JSON structure |
+| `combined` | AND/OR logic between multiple assertions |
+| `inline` | Safe expression-based custom matchers |
+
+## Redaction
+
+Built-in patterns for sensitive data:
+
+- `email` - Email addresses
+- `phone` - Phone numbers
+- `ssn` - Social Security Numbers
+- `credit_card` - Credit card numbers
+- `api_key` - API keys (sk_, pk_, etc.)
+- `jwt` - JWT tokens
+- `aws_key` - AWS access keys
+- `ipv4` - IPv4 addresses
+- `secrets` - Password/secret assignments
+
+```typescript
+import { Redactor, BUILTIN_PATTERNS } from '@artemiskit/core';
+
+const redactor = new Redactor({
+  enabled: true,
+  patterns: [BUILTIN_PATTERNS.EMAIL, BUILTIN_PATTERNS.PHONE],
+});
+
+const result = redactor.redact('Contact: user@example.com');
+// result.text = 'Contact: [REDACTED]'
+```
+
+## Related Packages
+
+- [`@artemiskit/cli`](https://www.npmjs.com/package/@artemiskit/cli) - Command-line interface
+- [`@artemiskit/adapter-openai`](https://www.npmjs.com/package/@artemiskit/adapter-openai) - OpenAI/Azure adapter
+- [`@artemiskit/adapter-vercel-ai`](https://www.npmjs.com/package/@artemiskit/adapter-vercel-ai) - Vercel AI SDK adapter (20+ providers)
+- [`@artemiskit/adapter-anthropic`](https://www.npmjs.com/package/@artemiskit/adapter-anthropic) - Anthropic Claude adapter
+- [`@artemiskit/redteam`](https://www.npmjs.com/package/@artemiskit/redteam) - Security testing
+- [`@artemiskit/reports`](https://www.npmjs.com/package/@artemiskit/reports) - HTML report generation
+
+## License
+
+Apache-2.0
