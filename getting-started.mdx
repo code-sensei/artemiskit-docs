@@ -1,17 +1,17 @@
 ---
 title: Getting Started
-description: Your first ArtemisKit test in 5 minutes. Install, configure, run.
+description: Install, configure and run your first ArtemisKit evaluation.
+editUrl: "https://github.com/code-sensei/artemiskit-docs/edit/main/getting-started.mdx"
 ---
 
 import { Aside, Steps, Tabs, TabItem, Card, CardGrid } from '@astrojs/starlight/components';
 
-# Getting Started
 
-From zero to your first passing test. Five minutes.
+Start with a small evaluation, then inspect the result.
 
 ## Prerequisites
 
-- Node.js 18+ or Bun 1.0+
+- Bun for the CLI (required even when installed with npm); the current qualified release used Bun 1.3.10. Node supports the SDK; the current release qualification used Node 24.18.0.
 - An API key for your LLM provider (OpenAI, Azure, Anthropic, etc.)
 
 ## Choose Your Path
@@ -77,7 +77,7 @@ From zero to your first passing test. Five minutes.
    name: hello-world
    description: My first ArtemisKit test
    provider: openai
-   model: gpt-4
+   model: gpt-4o
 
    cases:
      - id: basic-math
@@ -100,7 +100,7 @@ From zero to your first passing test. Five minutes.
    akit run hello-world.yaml
    ```
 
-   Output:
+   Illustrative output (actual timing and results vary):
 
    ```
    Running scenario: hello-world
@@ -208,7 +208,7 @@ For consistent settings across runs, create `artemis.config.yaml`:
 
 ```yaml
 provider: openai
-model: gpt-4
+model: gpt-4o
 
 providers:
   openai:

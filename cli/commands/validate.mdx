@@ -1,9 +1,9 @@
 ---
 title: artemiskit validate
 description: Validate scenario files without running them
+editUrl: "https://github.com/code-sensei/artemiskit-docs/edit/main/cli/commands/validate.mdx"
 ---
 
-# artemiskit validate
 
 Validate scenario files for syntax errors, schema violations, and semantic issues without executing them against an LLM.
 
@@ -83,7 +83,7 @@ Detects potential issues that don't prevent execution but may indicate problems.
 akit validate scenarios/qa-test.yaml
 ```
 
-Output:
+Illustrative output (actual timing and results vary):
 ```
 Validating scenarios...
 
@@ -99,7 +99,7 @@ Validating scenarios...
 akit validate scenarios/
 ```
 
-Output:
+Illustrative output (actual timing and results vary):
 ```
 Validating scenarios...
 
@@ -129,7 +129,7 @@ Get machine-readable JSON output:
 akit validate scenarios/qa-test.yaml --json
 ```
 
-Output:
+Illustrative output (actual timing and results vary):
 ```json
 {
   "valid": true,

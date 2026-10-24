@@ -1,0 +1,100 @@
+---
+title: "Milestone 0.6.4 release"
+description: "Milestone 0.6.4 release \u2014 source-backed ArtemisKit guide, synced from the core repository."
+editUrl: "https://github.com/code-sensei/artemiskit/blob/main/docs/releases/0.6.4.md"
+---
+
+> Source: [core repository guide](https://github.com/code-sensei/artemiskit/blob/e58778bef40bf77b4294805e47f2d16c89cece0a/docs/releases/0.6.4.md), snapshot `e58778bef40b`. Synced 2026-10-24. Package versions are independent of milestone labels.
+
+
+Status on 29 September 2026: **published and verified on npm and GitHub**.
+The [manifest](https://github.com/code-sensei/artemiskit/blob/e58778bef40bf77b4294805e47f2d16c89cece0a/docs/releases/0.6.4.json) records this milestone's independent package versions, and the
+[publication record](https://github.com/code-sensei/artemiskit/blob/e58778bef40bf77b4294805e47f2d16c89cece0a/docs/releases/0.6.4-publication.json) retains registry integrity, remote-tag and consumer
+evidence.
+
+## Delivered behavior
+
+`akit workflow report` and synchronous SDK/report-package APIs project saved public V1/V2/V3
+workflow evidence into one canonical report model. Technical, executive and comprehensive views
+export self-contained HTML or Markdown without provider configuration, network access, Docker,
+checkpoint restoration or a new evaluation. Comprehensive HTML is the default.
+
+The assessment shows scope, methodology, coverage and exclusions, criterion-grounded findings and
+next actions, independent runtime/task/policy status, target/judge usage, unavailable cost,
+configuration identities, evidence omissions, cleanup, fault/retry/state-change and recovery limits.
+Every finding links to stable JSON-pointer/digest evidence. All views retain uncertainty and the
+technical evidence appendix. HTML uses semantic sections, labeled tables, keyboard navigation,
+responsive layouts and print styles; it contains no scripts or external assets.
+
+Only eligible passed/failed final logical task outcomes enter success rates. Historical V1,
+preflight-only, invalid and unavailable evidence remains visible outside that denominator.
+Identical records count once. Compatible V3 pause/resume attempts preserve cumulative snapshots
+without treating each attempt as another independent task. Ambiguous or conflicting collections
+refuse aggregation. Empty eligible coverage produces an unavailable rate.
+
+CLI input is bounded to 50 regular, non-symlink files, 1 MiB each and 8 MiB total. Output files must be
+new paths and use mode 0600. Exit 0 means successful export even when tasks failed; invalid evidence
+exits 2 and input/output failures exit 1. SDK inputs accept saved objects or JSON strings and arrays.
+Legacy prompt-response reporting stays unchanged. See the [guide](/docs/workflows/reports/) for examples.
+
+## Verification
+
+Independent reviews accepted the canonical model, both renderers and CLI/SDK integration. Checks
+include actual-engine multi-attempt resume with preflight, truncated trace evidence, exact pointer
+hashes, hostile getters/proxies and injection payloads, no-overwrite outputs, FIFOs, invalid UTF8,
+symlinks and bounded input. No provider inference is required by reporting qualification.
+
+Source qualification passed 51 report/surface tests with 2,111 assertions. The final tracked-source
+suite `bun test packages scripts examples` passed **1,732 tests / 7,877 assertions / 107 files**.
+Whole-checkout `bun test` also passed 1,767 tests / 7,981 assertions including 35 ignored local
+tests outside the release. All 13 package builds and typechecks passed; lint had 0 errors and
+30 established SDK warnings. Fresh final tarball consumers passed Node/Bun imports, report CLI/SDK
+parity in all 6 view/format combinations, historical/current evidence, TypeScript NodeNext/bundler
+and actual Docker execution/recovery regressions.
+
+An intermittent five-second deadline affected the existing two-process publisher-shell test.
+The test now bounds each subprocess to five seconds and the combined test to fifteen seconds;
+all cleanup, source-preservation and credential-safety assertions remain. No production publisher
+timeout or CI configuration changed. An unchanged five-millisecond semantic late-usage test failed
+once in a later full run; its direct 35-test file and the unchanged final 1,732-test suite then passed.
+That timing sensitivity remains a recorded test limitation.
+
+All 3 HTML views were inspected at 1440 and 375px widths with no document overflow or external
+requests. Keyboard skip/evidence navigation, every local link, Markdown parsed anchors and print
+exports passed. This is bounded browser qualification, not a comprehensive assistive-technology audit.
+The [validation record](https://github.com/code-sensei/artemiskit/blob/e58778bef40bf77b4294805e47f2d16c89cece0a/docs/releases/0.6.4-validation.json) retains the final versioned consumer results, package
+SHA512 hashes, exact checks and browser evidence. All 13 committed-source repacks match those
+qualified archives. The final versioned full suite/typecheck/lint passed; an initial formatting-only
+error in the new validation JSON was corrected with the established formatter.
+
+## Boundaries
+
+Reports assess selected saved evidence. Free-form display labels and operation identifiers are
+hashed; private prose, file contents and checkpoint paths are excluded. Missing scenario definitions,
+exact harness version, full policy declarations, wider workload coverage and pricing are explicitly
+unavailable. Digests are identifiers, not authenticity signatures. No task rescoring, inferred
+readiness, independent statistical repetitions, model ranking or certification is claimed.
+
+Supported qualification is macOS arm64, Node 24.18.0 and Bun 1.3.10. CLI retains its Bun runtime;
+Node supports the SDK/report package. Other operating systems, browser engines and third-party
+Markdown renderers are not runtime-qualified here. No external model-quality claim, paid call,
+optional harness integration, Loki feature or CI repair is included.
+
+## Package map and publication
+
+Reports advances to 0.5.0; CLI and SDK to 0.6.3; core takes a release-alignment patch to 0.6.4 without
+changing saved workflow schemas. Necessary adapter/redteam dependency patches are listed in the
+manifest. MCP Docker 0.1.0 is unchanged. The SDK adds only the internal reports package dependency.
+The CLI now explicitly includes runtime source/bin/dist files and excludes local run artifacts.
+The publisher and tarball consumer verifier reject known runtime, checkpoint and environment-file
+paths. This corrects an ignored redaction-test record discovered in the prior CLI archive; published
+versions and local records remain unchanged. Fresh consumer checks and archive byte parity passed
+for the corrected candidate; all 13 committed-root repacks match the recorded final hashes.
+
+All twelve package versions are published on npm. The exact registry release gate and fresh
+registry-installed Node/Bun/TypeScript/CLI/SDK/Docker consumers passed. The twelve annotated package
+tags and `v0.6.4` resolve to the immutable candidate, and the [GitHub release](https://github.com/code-sensei/artemiskit/releases/tag/v0.6.4)
+is published. Published versions and remote tags were not replaced or moved.
+
+The next roadmap milestone is 0.7.0 comparative experiment orchestration. This report collection API
+does not establish cross-configuration comparison eligibility or execute repeated experiments.
