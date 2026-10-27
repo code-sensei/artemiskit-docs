@@ -1,6 +1,6 @@
 ---
 title: Getting Started
-description: Install, configure and run your first ArtemisKit evaluation.
+description: Install ArtemisKit, configure a model provider, run your first evaluation and learn how to interpret the result.
 editUrl: "https://github.com/code-sensei/artemiskit-docs/edit/main/getting-started.mdx"
 head:
   - tag: script
@@ -12,13 +12,13 @@ head:
 import { Aside, Steps, Tabs, TabItem, Card, CardGrid } from '@astrojs/starlight/components';
 
 
-Start with a small evaluation, then inspect the result.
+Start with a small evaluation, then inspect the result. This guide helps you choose the CLI or SDK, configure a provider and run one scenario. A passing check describes only the inputs and expectation used for that run.
 
 ## Watch the introduction
 
-See how to install the CLI, configure a provider, write a scenario, and inspect a first result.
+See how to install the CLI, configure a provider, write a scenario, and inspect a first result. You can also [watch the introduction on its own page](/introduction/).
 
-<video controls preload="metadata" poster="/videos/artemiskit-introduction-thumbnail.png" width="100%" aria-label="ArtemisKit introduction and getting started video">
+<video controls preload="none" poster="/videos/artemiskit-introduction-poster.webp" width="100%" aria-label="ArtemisKit introduction and getting started video">
   <source src="/videos/artemiskit-introduction.mp4" type="video/mp4" />
   <track kind="captions" src="/videos/artemiskit-introduction.en.vtt" srclang="en" label="English" default />
   Your browser does not support embedded video. <a href="/videos/artemiskit-introduction.mp4">Download the introduction video</a>.
@@ -48,6 +48,8 @@ See how to install the CLI, configure a provider, write a scenario, and inspect 
 
 - Bun for the CLI (required even when installed with npm); the current qualified release used Bun 1.3.10. Node supports the SDK; the current release qualification used Node 24.18.0.
 - An API key for your LLM provider (OpenAI, Azure, Anthropic, etc.)
+
+Validate a scenario without a model call using `akit validate hello-world.yaml`. An evaluation calls the configured provider and may incur usage charges. For automation, see [CLI CI/CD integration](/docs/cli/ci-cd/).
 
 ## Choose Your Path
 
@@ -151,7 +153,7 @@ See how to install the CLI, configure a provider, write a scenario, and inspect 
    akit run hello-world.yaml --save
    ```
 
-   Results are saved to `artemis-output/` with a `run_manifest.json` and timestamped report.
+   Results are saved through the configured storage adapter. Without a storage override, local manifests are saved under `artemis-runs/`; the CLI prints the saved location. To export a JUnit report separately, use `--export junit --export-output ./test-results`. See [local storage](/docs/cli/storage/local/) for configuration.
 
 </Steps>
 

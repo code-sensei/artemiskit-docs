@@ -1,173 +1,64 @@
 ---
-title: CI/CD Integration
-description: Integrate ArtemisKit into your CI/CD pipeline
+title: CLI CI/CD Integration
+description: Validate scenarios and run ArtemisKit evaluations in CI with Bun, provider credentials and JUnit artifacts.
 editUrl: "https://github.com/code-sensei/artemiskit-docs/edit/main/cli/ci-cd.mdx"
 ---
 
+A pipeline can check a scenario before it calls a model, then run the evaluation and retain a report for review. Start with a small scenario you understand; expand the gate once you know what a failure means for your team.
 
-Automate LLM evaluation as part of your deployment pipeline. ArtemisKit provides CI-friendly output formats, JUnit XML export, and validation tools.
+## What does the runner need?
 
-## Quick Start
+The CLI requires Bun even when installed with npm. The 0.6.4 release qualification used Bun 1.3.10 and CLI 0.6.3. The job also needs a checked-in scenario, access to the configured provider and its secret, and network access to that provider. Model calls can incur charges and results can vary between runs. Pin the CLI and runtime versions your team has tested.
+
+## Validate before calling a provider
 
 ```bash
-# Validate scenarios first (fail fast)
 akit validate scenarios/ --strict
-
-# Run tests with JUnit export for CI platforms
-akit run scenarios/ --ci --export junit --export-output ./test-results
-
-# Run security tests
-akit redteam scenarios/chatbot.yaml --export junit --export-output ./security-results
 ```
 
-## GitHub Actions
+Validation checks the scenario without making a model call. `--strict` treats warnings as errors. Fix an invalid scenario before investigating an evaluation result.
 
-### Basic Workflow with JUnit Reports
+## Run an evaluation in GitHub Actions
+
+This example assumes `scenarios/` contains valid scenarios configured for OpenAI and that `OPENAI_API_KEY` is available as a repository secret. Configure the secret in GitHub; do not put a key in the file. Review your repository’s rules for exposing secrets to pull requests, especially those from forks.
 
 ```yaml
-# .github/workflows/llm-evaluation.yml
-name: LLM Evaluation
-
+name: ArtemisKit evaluation
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-
 jobs:
   evaluate:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.10'
       - name: Install ArtemisKit
-        run: bun add -g @artemiskit/cli
-        
-      - name: Validate Scenarios
-        run: akit validate scenarios/ --strict --export junit --export-output ./validation-results
-        
-      - name: Run Evaluation
+        run: bun add -g @artemiskit/cli@0.6.3
+      - name: Validate scenarios
+        run: akit validate scenarios/ --strict
+      - name: Run evaluation
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: akit run scenarios/ --ci --export junit --export-output ./test-results
-        
-      - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v2
+      - name: Keep JUnit reports
         if: always()
-        with:
-          files: |
-            validation-results/*.xml
-            test-results/*.xml
-            
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: evaluation-results
-          path: |
-            validation-results/
-            test-results/
-```
-
-### With Regression Detection
-
-```yaml
-jobs:
-  evaluate:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Download Baseline
-        uses: actions/download-artifact@v4
-        with:
-          name: baseline-results
-          path: ./baseline
-        continue-on-error: true
-        
-      - name: Install ArtemisKit
-        run: npm install -g @artemiskit/cli
-        
-      - name: Run Evaluation
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: akit run scenarios/regression.yaml --save
-        
-      - name: Compare with Baseline
-        if: hashFiles('baseline/run_manifest.json') != ''
-        run: |
-          akit compare baseline/run_manifest.json artemis-output/run_manifest.json --strict
-          
-      - name: Update Baseline
-        if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
-          name: baseline-results
-          path: artemis-output/
+          name: artemiskit-junit
+          path: test-results/*.xml
+          if-no-files-found: warn
 ```
 
-## Exit Codes
+The run command exits nonzero when a scenario fails or execution encounters an error. A successful run means the declared checks passed for the evaluated cases and configuration; it does not establish safety or correctness for all inputs. Inspect the report and any provider or configuration errors before deciding what to change. A report might not exist if execution stops before export.
 
-Use exit codes to fail builds:
+## Where should results and secrets go?
 
-| Code | Meaning | Action |
-|------|---------|--------|
-| 0 | All tests passed | Continue |
-| 1 | Tests failed | Fail build |
-| 2 | Configuration error | Fail build |
+JUnit exports are written to the directory supplied by `--export-output`; filenames include the run ID. The CLI also saves manifests through its configured storage, which may be outside the export directory. Configure and collect the location your team actually uses. Reports and artifacts can contain prompts or responses: use approved test data, appropriate access and retention controls, and review redaction settings before sharing.
 
-## Environment Variables
-
-Store secrets securely:
-
-```yaml
-env:
-  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-```
-
-## Scheduled Runs
-
-Run evaluations on a schedule:
-
-```yaml
-on:
-  schedule:
-    - cron: '0 0 * * *'  # Daily at midnight
-```
-
-## GitLab CI
-
-```yaml
-# .gitlab-ci.yml
-llm-evaluation:
-  image: node:20
-  script:
-    - npm install -g @artemiskit/cli
-    - akit run scenarios/regression.yaml --save
-  artifacts:
-    paths:
-      - artemis-output/
-    expire_in: 30 days
-  variables:
-    OPENAI_API_KEY: $OPENAI_API_KEY
-```
-
-## Best Practices
-
-1. **Store API keys as secrets** — Never commit API keys
-2. **Use deterministic seeds** — Ensure reproducible results
-3. **Set reasonable timeouts** — Prevent hanging builds
-4. **Archive results** — Keep history for comparison
-5. **Run on PRs** — Catch regressions before merge
-
-## See Also
-
-- [Validate Command](/docs/cli/commands/validate/) — Pre-flight scenario validation
-- [Run Command](/docs/cli/commands/run/) — Execute scenarios with JUnit export
-- [Red Team Command](/docs/cli/commands/redteam/) — Security testing with JUnit export
-- [Compare Command](/docs/cli/commands/compare/) — Compare runs for regression
-- [Baseline Command](/docs/cli/commands/baseline/) — Manage baselines for regression detection
+For more options, see the [run command](/docs/cli/commands/run/) and [validate command](/docs/cli/commands/validate/). For a GitLab starting point, see [CI/CD pipeline examples](/docs/examples/ci-cd-integration/).

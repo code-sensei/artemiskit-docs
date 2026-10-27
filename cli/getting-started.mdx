@@ -11,13 +11,19 @@ import { Aside } from '@astrojs/starlight/components';
   For a comprehensive guide covering both CLI and SDK, see the [Getting Started](/docs/getting-started/) page.
 </Aside>
 
-## Quick Install
+## What do I need before the first run?
+
+Install Bun before running the CLI, even if you install the package with npm. The 0.6.4 release qualification used Bun 1.3.10. You also need access to a supported model provider and its credentials. Provider calls can incur charges.
+
+## Install and check the CLI
 
 ```bash
 npm install -g @artemiskit/cli
 ```
 
-## Quick Test
+Run `bun --version` and `akit --version` to confirm both commands are available. If `akit` is not found, check that your global package binary directory is on your shell’s PATH.
+
+## Run a first scenario
 
 ```bash
 # Set your API key
@@ -26,6 +32,7 @@ export OPENAI_API_KEY="sk-..."
 # Create a test scenario
 cat > hello-world.yaml << 'EOF'
 name: hello-world
+description: Check a simple response
 provider: openai
 model: gpt-4o
 
@@ -40,6 +47,10 @@ EOF
 # Run the test
 akit run hello-world.yaml
 ```
+
+A pass means the response met the declared text check in that run. It does not prove correctness on other inputs. If validation or the provider call fails, inspect the error, provider configuration and model access before changing the expectation.
+
+To check the scenario without making a model call, use `akit validate hello-world.yaml`. When you are ready to run the same checks in a pipeline, follow the [CLI CI/CD guide](/docs/cli/ci-cd/).
 
 ## Next Steps
 
