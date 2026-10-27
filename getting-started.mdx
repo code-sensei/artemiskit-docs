@@ -9,6 +9,35 @@ import { Aside, Steps, Tabs, TabItem, Card, CardGrid } from '@astrojs/starlight/
 
 Start with a small evaluation, then inspect the result.
 
+## Watch the introduction
+
+See how to install the CLI, configure a provider, write a scenario, and inspect a first result.
+
+<video controls preload="metadata" poster="/videos/artemiskit-introduction-thumbnail.png" width="100%">
+  <source src="/videos/artemiskit-introduction.mp4" type="video/mp4" />
+  Your browser does not support embedded video. <a href="/videos/artemiskit-introduction.mp4">Download the introduction video</a>.
+</video>
+
+<details>
+  <summary>Read the video transcript</summary>
+
+  Your AI answer looks right. But does it still work when the request changes, or when an important detail is missing? If you can't repeat the check, every prompt edit becomes guesswork.
+
+  ArtemisKit is an open-source toolkit for evaluating AI behavior against the cases and expectations you choose. It gives you a repeatable way to see what was tested, what happened, and where you still need to investigate.
+
+  Let's run a first test. The command-line tool needs Bun. With Bun installed, install the CLI, and check its version.
+
+  Next, configure a supported model provider using your own credentials.
+
+  Create a small YAML scenario. Give a case a prompt, then specify what the response must contain. For this example, the expected value is four.
+
+  Run the scenario with ArtemisKit using the command on screen. Here, we've connected a local model through an OpenAI-compatible endpoint. ArtemisKit records the response and the check alongside the run details.
+
+  This single case passed. That tells us only that this model, in this run, met this one check. Now add a boundary case, change one thing, and run it again.
+
+  Discover more at artemiskit.dev. Your AI has a job. Test it for that job.
+</details>
+
 ## Prerequisites
 
 - Bun for the CLI (required even when installed with npm); the current qualified release used Bun 1.3.10. Node supports the SDK; the current release qualification used Node 24.18.0.
