@@ -2,6 +2,11 @@
 title: Getting Started
 description: Install, configure and run your first ArtemisKit evaluation.
 editUrl: "https://github.com/code-sensei/artemiskit-docs/edit/main/getting-started.mdx"
+head:
+  - tag: script
+    attrs:
+      type: application/ld+json
+    content: '{"@context":"https://schema.org","@type":"VideoObject","name":"ArtemisKit Introduction: Get Started","description":"Install the ArtemisKit CLI, configure a provider, write a scenario and inspect a first test result.","thumbnailUrl":"https://www.artemiskit.dev/videos/artemiskit-introduction-thumbnail.png","contentUrl":"https://www.artemiskit.dev/videos/artemiskit-introduction.mp4","uploadDate":"2026-10-27","duration":"PT1M20.8S"}'
 ---
 
 import { Aside, Steps, Tabs, TabItem, Card, CardGrid } from '@astrojs/starlight/components';
@@ -13,8 +18,9 @@ Start with a small evaluation, then inspect the result.
 
 See how to install the CLI, configure a provider, write a scenario, and inspect a first result.
 
-<video controls preload="metadata" poster="/videos/artemiskit-introduction-thumbnail.png" width="100%">
+<video controls preload="metadata" poster="/videos/artemiskit-introduction-thumbnail.png" width="100%" aria-label="ArtemisKit introduction and getting started video">
   <source src="/videos/artemiskit-introduction.mp4" type="video/mp4" />
+  <track kind="captions" src="/videos/artemiskit-introduction.en.vtt" srclang="en" label="English" default />
   Your browser does not support embedded video. <a href="/videos/artemiskit-introduction.mp4">Download the introduction video</a>.
 </video>
 
